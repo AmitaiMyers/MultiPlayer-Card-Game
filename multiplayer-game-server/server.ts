@@ -1,9 +1,8 @@
 import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
+import {Server} from 'socket.io';
 import cors from 'cors';
 import {Card, Deck} from "../src/Card";
-
 
 const app = express();
 
@@ -29,7 +28,8 @@ interface Player {
 
 const players: Player[] = [];
 const MAX_PLAYERS = 4;
-
+const chosenCards: { player: string; card: Card; }[] = [];
+// let currentTurn = 0;
 io.on('connection', (socket) => {
     console.log('A user connected');
     let currentPlayerName = '';
@@ -39,13 +39,22 @@ io.on('connection', (socket) => {
         console.log(`${playerName} joined the game`);
         const existingPlayer = players.find(p => p.name === playerName);
         if (!existingPlayer) {
-            players.push({ name: playerName, socketId: socket.id });
+            players.push({name: playerName, socketId: socket.id});
         }
         io.emit('updatePlayers', players.map(p => p.name));
         if (players.length === MAX_PLAYERS) {
             startGame();
         }
     });
+
+    socket.on('chooseCard', (playerName: string, chosenCard: Card) => {
+        console.log(`${playerName} chose a card:`, chosenCard);
+        chosenCards.push({ player: playerName, card: chosenCard });
+        io.emit('cardChosen', playerName, chosenCard);
+        // You can add game logic here to handle turns, scoring, etc.
+    });
+
+
 
     socket.on('disconnect', () => {
         console.log(`${currentPlayerName} disconnected`);
@@ -62,8 +71,7 @@ function startGame() {
     const deck = new Deck();
     deck.shuffle();
     const hands = deck.deal();
-
-    hands.forEach((handOfCards:Card[],index:number): void => {
+    hands.forEach((handOfCards: Card[], index: number): void => {
         hands[index] = deck.sortCardsBySuitAndValue(handOfCards);
     })
 
@@ -76,3 +84,4 @@ const PORT = 3001;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+

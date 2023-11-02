@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import io from 'socket.io-client';
-import {Card, Deck} from './Card';
+import {Card} from './Card';
 import './styles.css';
 
 
@@ -19,14 +19,14 @@ interface PlayerHandProps {
     currentPlayer: string | null;
 }
 
-const PlayerHand: React.FC<PlayerHandProps & { position: string }> = ({ cards, playerName, currentPlayer, position }) => {
+const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (card: Card) => void }> = ({ cards, playerName, currentPlayer, position, onCardClick }) => {
     return (
         <div className={`player ${position}`}>
             <h3>{playerName}</h3>
             {currentPlayer === playerName && (
                 <div className="cards">
                     {cards.map((card, index) => (
-                        <div key={index} className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`}>
+                        <div key={index} className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`} onClick={() => onCardClick(card)}>
                             <span className="value">{card.value}</span>
                             <span className="suit">{card.suit}</span>
                         </div>
@@ -43,6 +43,9 @@ const Game: React.FC = () => {
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [currentPlayer, setCurrentPlayer] = useState<string | null>(null);
     const [playerCards, setPlayerCards] = useState<Card[]>([]);
+    const [chosenCards, setChosenCards] = useState<Card[]>([]);
+    const [currentTurn, setCurrentTurn] = useState<number>(0);
+
 
     const getPlayerPosition = (playerName: string) => {
         if (playerName === currentPlayer) return "bottom";
@@ -67,6 +70,35 @@ const Game: React.FC = () => {
         });
     }, [currentPlayer]);
 
+    useEffect(() => {
+        socket.on('updateTurn', (playerName: string) => {
+            const nextTurn = players.findIndex(p => p === playerName);
+            setCurrentTurn(nextTurn);
+        });
+    }, [players]);
+
+
+    useEffect(() => {
+        socket.on('cardChosen', (playerName: string, chosenCard: Card) => {
+            setChosenCards(prevChosenCards => {
+                const cardAlreadyChosen = prevChosenCards.some(card => card.suit === chosenCard.suit && card.value === chosenCard.value);
+                if (!cardAlreadyChosen) {
+                    return [...prevChosenCards, chosenCard];
+                }
+                return prevChosenCards;
+            });
+
+            if (playerName === currentPlayer) {
+                setPlayerCards(prevPlayerCards => prevPlayerCards.filter(card => card.suit !== chosenCard.suit || card.value !== chosenCard.value));
+            }
+
+            const nextTurn = (currentTurn + 1) % players.length;
+            setCurrentTurn(nextTurn);
+        });
+    }, [currentPlayer, currentTurn, players.length]);
+
+
+
     const handleJoinGame = () => {
         if (!hasJoined) {
             const playerName = prompt('Enter your name:');
@@ -80,6 +112,17 @@ const Game: React.FC = () => {
         }
     };
 
+    const handleCardClick = (chosenCard: Card) => {
+        if (currentPlayer !== players[currentTurn]) {
+            alert("It's not your turn!");
+            return;
+        }
+
+        socket.emit('chooseCard', currentPlayer, chosenCard);
+    };
+
+
+
     return (
         <div className="game-container">
             <h1>Whist Game</h1>
@@ -92,11 +135,19 @@ const Game: React.FC = () => {
                             cards={playerCards}
                             currentPlayer={currentPlayer}
                             position={getPlayerPosition(player)}
+                            onCardClick={handleCardClick}
                         />
+
                     ))}
                     <div className="center-cards">
-                        {/* Add chosen cards every round here */}
+                        {chosenCards.map((card, index) => (
+                            <div key={index} className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`}>
+                                <span className="value">{card.value}</span>
+                                <span className="suit">{card.suit}</span>
+                            </div>
+                        ))}
                     </div>
+
                 </div>
             ) : (
                 <div>
