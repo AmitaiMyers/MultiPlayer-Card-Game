@@ -97,12 +97,6 @@ const Game: React.FC = () => {
 
     }, [currentPlayer]);
 
-    useEffect(() => {
-        socket.on('updateTurn', (playerName: string) => {
-            const nextTurn = players.findIndex(p => p === playerName);
-            setCurrentTurn(nextTurn);
-        });
-    }, [players]);
 
     useEffect(() => {
         socket.on('cardChosen', (playerName: string, chosenCard: Card) => {
@@ -127,7 +121,9 @@ const Game: React.FC = () => {
             //     // Emit an event to the server to handle the end of the round
             //     // socket.emit('endRound', ...); // You will need to implement this on the server-side
             // }
-
+            socket.on('turn', (nextPlayerName: string) => {
+                setCurrentTurn(players.findIndex(p => p === nextPlayerName));
+            });
             // Handling the turn should be separate from adding a card
             const nextTurn = (currentTurn + 1) % players.length;
             setCurrentTurn(nextTurn);
@@ -136,8 +132,9 @@ const Game: React.FC = () => {
         // Clean up the event listener when the component unmounts
         return () => {
             socket.off('cardChosen');
+            socket.off('turn');
         };
-    }, [currentPlayer, currentTurn, players.length, chosenCards.length, socket]);
+    }, [players, currentPlayer, chosenCards.length]);
 
     useEffect(() => {
         socket.on('roundEnded', (updatedPlayers) => {
@@ -154,13 +151,28 @@ const Game: React.FC = () => {
         socket.on('clearChosenCards', () => {
             setChosenCards([]); // Assuming setChosenCards is the state setter for chosenCards
         });
+        socket.on('turn', (playerName: string) => {
+            setCurrentTurn(players.findIndex(p => p === playerName));
+        });
+
 
         // Cleanup listener on component unmount
         return () => {
             socket.off('clearChosenCards');
+            socket.off('turn')
         };
+
     }, [socket]);
 
+    useEffect(() => {
+        socket.on('turn', (playerName: string) => {
+            setCurrentTurn(players.findIndex(p => p === playerName));
+        });
+
+        return () => {
+            socket.off('turn');
+        };
+    }, [players]); // Depend on players to recalculate when players state changes
 
 
     useEffect(() => {
@@ -176,6 +188,17 @@ const Game: React.FC = () => {
         };
     }, [socket]);
 
+    useEffect(() => {
+        socket.on('turn', (playerName: string) => {
+            setCurrentPlayer(playerName);
+        });
+
+        return () => {
+            socket.off('turn');
+        };
+    }, []); // This useEffect should only run once at mount, hence no dependencies
+
+
     const handleJoinGame = () => {
         if (!hasJoined) {
             const playerName = prompt('Enter your name:');
@@ -190,12 +213,18 @@ const Game: React.FC = () => {
     };
 
     const handleCardClick = (chosenCard: Card) => {
+        console.log("Current Player: ", currentPlayer);
+        console.log("Current Turn Index: ", currentTurn);
+        console.log("Player at Current Turn: ", players[currentTurn]);
+
+        // Check if it's the current player's turn
         if (currentPlayer !== players[currentTurn]) {
             alert("It's not your turn!");
             return;
         }
-
+        // Emit the 'chooseCard' event with the chosen card
         socket.emit('chooseCard', currentPlayer, chosenCard);
+
     };
 
 

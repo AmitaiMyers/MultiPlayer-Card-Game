@@ -27,6 +27,7 @@ const players: Player[] = [];
 const MAX_PLAYERS = 4;
 const MAX_CARDS_SLOT = 4;
 let currentRoundCards: any[] = [];
+let currentTurn = 0;
 let currentRound = 1;
 
 io.on('connection', (socket) => {
@@ -38,11 +39,12 @@ io.on('connection', (socket) => {
         console.log(`${playerName} joined the game`);
         const existingPlayer = players.find(p => p.name === playerName);
         if (!existingPlayer) {
-            players.push({name: playerName, socketId: socket.id, guess: 0, takes: 0, score: 0});
+            players.push({name: playerName,index:players.length, socketId: socket.id, guess: 0, takes: 0, score: 0});
         }
         io.emit('updatePlayers', players.map(p => p.name));
         if (players.length === MAX_PLAYERS) {
             startGame();
+            io.emit('turn',players[currentTurn].name);
         }
 
         io.emit('playerStats', players.map(p => ({
@@ -60,12 +62,15 @@ io.on('connection', (socket) => {
             return;
         }
         console.log(`${playerName} chose a card:`, chosenCard);
-        const chosenCardWithPlayer = { card: chosenCard, playerIndex }; // Include the player index here
+        const chosenCardWithPlayer = {card: chosenCard, playerIndex}; // Include the player index here
         // Add card to the current round cards and notify clients
         if (currentRoundCards.length < MAX_CARDS_SLOT) {
             // Add card to the current round cards and notify clients
             currentRoundCards.push(chosenCardWithPlayer);
+            currentTurn = (currentTurn + 1) % players.length;
             io.emit('cardChosen', playerName, chosenCard, currentRoundCards);
+            console.log("Current Turn Index After Choosing Card: ", currentTurn);
+            io.emit('turn', players[currentTurn].name);
         }
         // Check if the round has ended
         if (currentRoundCards.length === MAX_CARDS_SLOT) {
@@ -75,8 +80,11 @@ io.on('connection', (socket) => {
 
             // Notify clients about the round end and winner
             io.emit('roundEnded', players.map(p => ({name: p.name, takes: p.takes})), winningPlayerIndex);
-            currentRoundCards = [];
-            io.emit('clearChosenCards');
+            currentTurn = winningPlayerIndex;
+            setTimeout(() => {
+                currentRoundCards = [];
+                io.emit('clearChosenCards');
+            }, 5000)
         }
     });
 
@@ -118,7 +126,7 @@ io.on('connection', (socket) => {
 
         const faceToNumber: { [key: string]: number } = {'A': 14, 'K': 13, 'Q': 12, 'J': 11, '10': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2};
 
-        currentRoundCards.forEach(({ card, playerIndex }) => {
+        currentRoundCards.forEach(({card, playerIndex}) => {
             const cardValue = faceToNumber[card.value] || parseInt(card.value, 10); // Ensure card.value is converted to the corresponding number
             if (cardValue > highestCardValue) {
                 highestCardValue = cardValue;
@@ -147,7 +155,9 @@ function startGame() {
     hands.forEach((handOfCards: Card[], index: number): void => {
         hands[index] = deck.sortCardsBySuitAndValue(handOfCards);
     })
-
+    currentTurn = 0;
+    console.log("Initial Turn Index at Start Game: ", currentTurn);
+    io.emit('turn', players[currentTurn].name);
     players.forEach((player, index) => {
         io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
     });
