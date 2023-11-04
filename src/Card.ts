@@ -4,6 +4,12 @@ const SUITS = ["♠", "♣", "♥", "♦"] as const;
 const VALUES = [
     "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"
 ] as const;
+const suitPriority: { [key: string]: number } = {
+    '♣': 1,
+    '♦': 2,
+    '♥': 3,
+    '♠': 4,
+};
 
 type Suit = typeof SUITS[number];
 type Value = typeof VALUES[number];
@@ -70,6 +76,7 @@ export class Deck {
             return customValueOrder.indexOf(b.value) - customValueOrder.indexOf(a.value);
         });
     }
-}
+
+    }
 
 export {Card, SUITS, VALUES,};

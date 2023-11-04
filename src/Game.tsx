@@ -6,12 +6,7 @@ import './styles.css';
 
 const socket = io('http://localhost:3001'); // Update with your server's address
 
-const suitPriority: { [key: string]: number } = {
-    '♣': 1,
-    '♦': 2,
-    '♥': 3,
-    '♠': 4,
-};
+
 
 interface PlayerHandProps {
     cards: Card[];
@@ -19,7 +14,9 @@ interface PlayerHandProps {
     currentPlayer: string | null;
 }
 
+
 const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (card: Card) => void }> = ({ cards, playerName, currentPlayer, position, onCardClick }) => {
+
     return (
         <div className={`player ${position}`}>
             <h3>{playerName}</h3>
@@ -45,6 +42,9 @@ const Game: React.FC = () => {
     const [playerCards, setPlayerCards] = useState<Card[]>([]);
     const [chosenCards, setChosenCards] = useState<Card[]>([]);
     const [currentTurn, setCurrentTurn] = useState<number>(0);
+    const [round, setRound] = useState<number>(1);
+    const [playerTakes, setPlayerTakes] = useState<number[]>([0, 0, 0, 0]);
+
 
 
     const getPlayerPosition = (playerName: string) => {
@@ -96,7 +96,6 @@ const Game: React.FC = () => {
             setCurrentTurn(nextTurn);
         });
     }, [currentPlayer, currentTurn, players.length]);
-
 
 
     const handleJoinGame = () => {
