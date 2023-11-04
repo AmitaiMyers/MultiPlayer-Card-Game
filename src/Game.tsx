@@ -104,25 +104,40 @@ const Game: React.FC = () => {
         });
     }, [players]);
 
-
     useEffect(() => {
         socket.on('cardChosen', (playerName: string, chosenCard: Card) => {
             setChosenCards(prevChosenCards => {
+                // Check if the card is already chosen
                 const cardAlreadyChosen = prevChosenCards.some(card => card.suit === chosenCard.suit && card.value === chosenCard.value);
-                if (!cardAlreadyChosen) {
+                // If the card is not already chosen and there are less than 4 cards, add the card
+                if (!cardAlreadyChosen && prevChosenCards.length < 4) {
                     return [...prevChosenCards, chosenCard];
                 }
-                return prevChosenCards;
+                return prevChosenCards; // Otherwise, return the previous array without change
             });
 
-            if (playerName === currentPlayer) {
-                setPlayerCards(prevPlayerCards => prevPlayerCards.filter(card => card.suit !== chosenCard.suit || card.value !== chosenCard.value));
+            if(playerName === currentPlayer && chosenCards.length < 4) {
+                setPlayerCards(prevPlayerCards => {
+                    return prevPlayerCards.filter(card => card.suit !== chosenCard.suit || card.value !== chosenCard.value);
+                });
             }
 
+            // After a card is chosen, check if there are now 4 cards to determine if the round should end
+            if (chosenCards.length === 4) {
+                // Emit an event to the server to handle the end of the round
+                // socket.emit('endRound', ...); // You will need to implement this on the server-side
+            }
+
+            // Handling the turn should be separate from adding a card
             const nextTurn = (currentTurn + 1) % players.length;
             setCurrentTurn(nextTurn);
         });
-    }, [currentPlayer, currentTurn, players.length]);
+
+        // Clean up the event listener when the component unmounts
+        return () => {
+            socket.off('cardChosen');
+        };
+    }, [currentPlayer, currentTurn, players.length, chosenCards.length, socket]);
 
 
     useEffect(() => {
