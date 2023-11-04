@@ -4,6 +4,7 @@ import {Server} from 'socket.io';
 import cors from 'cors';
 import {Card, Deck} from "../src/Card";
 import {Player} from "../src/types";
+
 const app = express();
 
 app.use(cors({
@@ -25,8 +26,7 @@ const io = new Server(server, {
 const players: Player[] = [];
 const MAX_PLAYERS = 4;
 const MAX_CARDS_SLOT = 4;
-let chosenCards: { player: string; card: Card; }[] = [];
-let currentRoundCards: Card[] = [];
+let currentRoundCards: any[] = [];
 let currentRound = 1;
 
 io.on('connection', (socket) => {
@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
             startGame();
         }
 
-        io.emit('playerStats',players.map(p=>({
+        io.emit('playerStats', players.map(p => ({
             name: p.name,
             guess: p.guess,
             takes: p.takes,
@@ -54,61 +54,80 @@ io.on('connection', (socket) => {
     });
 
     socket.on('chooseCard', (playerName: string, chosenCard: Card) => {
+        const playerIndex = players.findIndex(p => p.name === playerName);
+        if (playerIndex === -1) {
+            console.error(`Player ${playerName} not found`);
+            return;
+        }
         console.log(`${playerName} chose a card:`, chosenCard);
-
+        const chosenCardWithPlayer = { card: chosenCard, playerIndex }; // Include the player index here
         // Add card to the current round cards and notify clients
         if (currentRoundCards.length < MAX_CARDS_SLOT) {
             // Add card to the current round cards and notify clients
-            currentRoundCards.push(chosenCard);
+            currentRoundCards.push(chosenCardWithPlayer);
             io.emit('cardChosen', playerName, chosenCard, currentRoundCards);
         }
         // Check if the round has ended
         if (currentRoundCards.length === MAX_CARDS_SLOT) {
-            const winningPlayerIndex = determineHighestCard(currentRoundCards, null, null);
-            console.log(`player ${winningPlayerIndex} has won`);
-            // players[winningPlayerIndex].takes++;
-
-            // Reset for next round
-            currentRoundCards.length = 0;
-            // currentPlayer = winningPlayerIndex;
+            const winningPlayerIndex = determineHighestCard(currentRoundCards);
+            console.log(`player ${players[winningPlayerIndex].name} has won`);
+            players[winningPlayerIndex].takes++;
 
             // Notify clients about the round end and winner
             io.emit('roundEnded', players.map(p => ({name: p.name, takes: p.takes})), winningPlayerIndex);
+            currentRoundCards = [];
+            io.emit('clearChosenCards');
         }
     });
 
-    function determineHighestCard(gameAreaCards: (Card | null)[], roundSuit: string | null, sliceSuit: string | null): number {
-        let maxRoundSuitCardValue = 0;
-        let maxSliceSuitCardValue = 0;
-        let winningPlayerIndexSliceSuit = -1;
-        let winningPlayerIndexRoundSuit = -1;
+    // function determineHighestCard(gameAreaCards: (Card | null)[], roundSuit: string | null, sliceSuit: string | null): number {
+    //     let maxRoundSuitCardValue = 0;
+    //     let maxSliceSuitCardValue = 0;
+    //     let winningPlayerIndexSliceSuit = -1;
+    //     let winningPlayerIndexRoundSuit = -1;
+    //
+    //     const faceToNumber: { [key: string]: number } = {'A': 14, 'K': 13, 'Q': 12, 'J': 11};
+    //
+    //     gameAreaCards.forEach((card, index) => {
+    //         if (card) {
+    //             const cardValue = faceToNumber[card.value] || parseInt(card.value, 10);
+    //
+    //             if (card.suit === sliceSuit) {
+    //                 if (cardValue > maxSliceSuitCardValue) {
+    //                     maxSliceSuitCardValue = cardValue;
+    //                     winningPlayerIndexSliceSuit = index;
+    //                 }
+    //             } else if (card.suit === roundSuit) {
+    //                 if (cardValue > maxRoundSuitCardValue) {
+    //                     maxRoundSuitCardValue = cardValue;
+    //                     winningPlayerIndexRoundSuit = index;
+    //                 }
+    //             }
+    //         }
+    //     });
+    //
+    //     // If there's a slice suit card, it wins regardless of round suit cards
+    //     if (maxSliceSuitCardValue > 0) return winningPlayerIndexSliceSuit;
+    //
+    //     return winningPlayerIndexRoundSuit;
+    // }
+// This function should be adjusted according to how you store player index/name in the card object
+    function determineHighestCard(currentRoundCards: { card: Card; playerIndex: number }[]): number {
+        let highestCardIndex = -1;
+        let highestCardValue = 0;
 
-        const faceToNumber: { [key: string]: number } = {'A': 14, 'K': 13, 'Q': 12, 'J': 11};
+        const faceToNumber: { [key: string]: number } = {'A': 14, 'K': 13, 'Q': 12, 'J': 11, '10': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2};
 
-        gameAreaCards.forEach((card, index) => {
-            if (card) {
-                const cardValue = faceToNumber[card.value] || parseInt(card.value, 10);
-
-                if (card.suit === sliceSuit) {
-                    if (cardValue > maxSliceSuitCardValue) {
-                        maxSliceSuitCardValue = cardValue;
-                        winningPlayerIndexSliceSuit = index;
-                    }
-                } else if (card.suit === roundSuit) {
-                    if (cardValue > maxRoundSuitCardValue) {
-                        maxRoundSuitCardValue = cardValue;
-                        winningPlayerIndexRoundSuit = index;
-                    }
-                }
+        currentRoundCards.forEach(({ card, playerIndex }) => {
+            const cardValue = faceToNumber[card.value] || parseInt(card.value, 10); // Ensure card.value is converted to the corresponding number
+            if (cardValue > highestCardValue) {
+                highestCardValue = cardValue;
+                highestCardIndex = playerIndex; // Assuming this is the index of the player in the players array
             }
         });
 
-        // If there's a slice suit card, it wins regardless of round suit cards
-        if (maxSliceSuitCardValue > 0) return winningPlayerIndexSliceSuit;
-
-        return winningPlayerIndexRoundSuit;
+        return highestCardIndex; // Index of the player who played the highest card
     }
-
 
     socket.on('disconnect', () => {
         console.log(`${currentPlayerName} disconnected`);

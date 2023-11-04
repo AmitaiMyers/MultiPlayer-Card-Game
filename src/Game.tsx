@@ -123,10 +123,10 @@ const Game: React.FC = () => {
             }
 
             // After a card is chosen, check if there are now 4 cards to determine if the round should end
-            if (chosenCards.length === 4) {
-                // Emit an event to the server to handle the end of the round
-                // socket.emit('endRound', ...); // You will need to implement this on the server-side
-            }
+            // if (chosenCards.length === 4) {
+            //     // Emit an event to the server to handle the end of the round
+            //     // socket.emit('endRound', ...); // You will need to implement this on the server-side
+            // }
 
             // Handling the turn should be separate from adding a card
             const nextTurn = (currentTurn + 1) % players.length;
@@ -138,6 +138,29 @@ const Game: React.FC = () => {
             socket.off('cardChosen');
         };
     }, [currentPlayer, currentTurn, players.length, chosenCards.length, socket]);
+
+    useEffect(() => {
+        socket.on('roundEnded', (updatedPlayers) => {
+            setPlayerStats(updatedPlayers); // Assuming playerStats is the state that holds the data for rendering the table
+        });
+
+        // Cleanup listener on component unmount
+        return () => {
+            socket.off('roundEnded');
+        };
+    }, [socket]);
+
+    useEffect(() => {
+        socket.on('clearChosenCards', () => {
+            setChosenCards([]); // Assuming setChosenCards is the state setter for chosenCards
+        });
+
+        // Cleanup listener on component unmount
+        return () => {
+            socket.off('clearChosenCards');
+        };
+    }, [socket]);
+
 
 
     useEffect(() => {
