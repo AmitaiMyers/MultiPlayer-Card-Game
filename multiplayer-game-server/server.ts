@@ -3,7 +3,7 @@ import http from 'http';
 import {Server} from 'socket.io';
 import cors from 'cors';
 import {Card, Deck} from "../src/Card";
-
+import {Player} from "../src/types";
 const app = express();
 
 app.use(cors({
@@ -21,13 +21,6 @@ const io = new Server(server, {
     },
 });
 
-interface Player {
-    name: string;
-    socketId: string;
-    guess: number;
-    takes: number;
-    score: number;
-}
 
 const players: Player[] = [];
 const MAX_PLAYERS = 4;
@@ -51,6 +44,13 @@ io.on('connection', (socket) => {
         if (players.length === MAX_PLAYERS) {
             startGame();
         }
+
+        io.emit('playerStats',players.map(p=>({
+            name: p.name,
+            guess: p.guess,
+            takes: p.takes,
+            score: p.score
+        })));
     });
 
     socket.on('chooseCard', (playerName: string, chosenCard: Card) => {
@@ -66,7 +66,7 @@ io.on('connection', (socket) => {
         if (currentRoundCards.length === MAX_CARDS_SLOT) {
             const winningPlayerIndex = determineHighestCard(currentRoundCards, null, null);
             console.log(`player ${winningPlayerIndex} has won`);
-            players[winningPlayerIndex].takes++;
+            // players[winningPlayerIndex].takes++;
 
             // Reset for next round
             currentRoundCards.length = 0;

@@ -2,6 +2,8 @@ import React, {useEffect, useState} from 'react';
 import io from 'socket.io-client';
 import {Card} from './Card';
 import './styles.css';
+import {Player} from "./types";
+
 
 
 const socket = io('http://localhost:3001'); // Update with your server's address
@@ -42,9 +44,33 @@ const Game: React.FC = () => {
     const [playerCards, setPlayerCards] = useState<Card[]>([]);
     const [chosenCards, setChosenCards] = useState<Card[]>([]);
     const [currentTurn, setCurrentTurn] = useState<number>(0);
-    const [round, setRound] = useState<number>(1);
-    const [playerTakes, setPlayerTakes] = useState<number[]>([0, 0, 0, 0]);
+    const [playerStats,setPlayerStats] = useState<Player[]>([]);
 
+
+    const renderStatsTable = () => {
+        return (
+            <table className="stats-table">
+                <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>Declare</th>
+                    <th>Take</th>
+                    <th>Score</th>
+                </tr>
+                </thead>
+                <tbody>
+                {playerStats.map((player, index) => (
+                    <tr key={index}>
+                        <td>{player.name}</td>
+                        <td>{player.guess}</td>
+                        <td>{player.takes}</td>
+                        <td>{player.score}</td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+        );
+    };
 
 
     const getPlayerPosition = (playerName: string) => {
@@ -68,6 +94,7 @@ const Game: React.FC = () => {
                 setPlayerCards(cards);
             }
         });
+
     }, [currentPlayer]);
 
     useEffect(() => {
@@ -98,6 +125,19 @@ const Game: React.FC = () => {
     }, [currentPlayer, currentTurn, players.length]);
 
 
+    useEffect(() => {
+        const handlePlayerStats = (stats: React.SetStateAction<Player[]>) => {
+            setPlayerStats(stats);
+        };
+
+        socket.on('playerStats', handlePlayerStats);
+
+        // Return a cleanup function to remove the event listener when the component unmounts
+        return () => {
+            socket.off('playerStats', handlePlayerStats);
+        };
+    }, [socket]);
+
     const handleJoinGame = () => {
         if (!hasJoined) {
             const playerName = prompt('Enter your name:');
@@ -125,6 +165,9 @@ const Game: React.FC = () => {
     return (
         <div className="game-container">
             <h1>Whist Game</h1>
+            <div className="stats-container">
+                {renderStatsTable()}
+            </div>
             {gameStarted ? (
                 <div className="game-board">
                     {players.map((player) => (
