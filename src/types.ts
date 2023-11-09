@@ -1,6 +1,6 @@
 export interface Player {
     name: string;
-    index:number;
+    index: number;
     socketId: string;
     guess: number;
     takes: number;

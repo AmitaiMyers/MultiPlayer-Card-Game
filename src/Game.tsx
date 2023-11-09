@@ -5,9 +5,7 @@ import './styles.css';
 import {Player} from "./types";
 
 
-
 const socket = io('http://localhost:3001'); // Update with your server's address
-
 
 
 interface PlayerHandProps {
@@ -17,7 +15,7 @@ interface PlayerHandProps {
 }
 
 
-const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (card: Card) => void }> = ({ cards, playerName, currentPlayer, position, onCardClick }) => {
+const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (card: Card) => void }> = ({cards, playerName, currentPlayer, position, onCardClick}) => {
 
     return (
         <div className={`player ${position}`}>
@@ -25,7 +23,8 @@ const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (c
             {currentPlayer === playerName && (
                 <div className="cards">
                     {cards.map((card, index) => (
-                        <div key={index} className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`} onClick={() => onCardClick(card)}>
+                        <div key={index} className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`}
+                             onClick={() => onCardClick(card)}>
                             <span className="value">{card.value}</span>
                             <span className="suit">{card.suit}</span>
                         </div>
@@ -43,8 +42,9 @@ const Game: React.FC = () => {
     const [currentPlayer, setCurrentPlayer] = useState<string | null>(null);
     const [playerCards, setPlayerCards] = useState<Card[]>([]);
     const [chosenCards, setChosenCards] = useState<Card[]>([]);
-    const [currentTurn, setCurrentTurn] = useState<number>(0);
-    const [playerStats,setPlayerStats] = useState<Player[]>([]);
+    const [currentTurnPlayer, setCurrentTurnPlayer] = useState<number>(0);
+    const [playerStats, setPlayerStats] = useState<Player[]>([]);
+    const [canChooseCard, setCanChooseCard] = useState<boolean>(true);
 
 
     const renderStatsTable = () => {
@@ -110,29 +110,17 @@ const Game: React.FC = () => {
                 return prevChosenCards; // Otherwise, return the previous array without change
             });
 
-            if(playerName === currentPlayer && chosenCards.length < 4) {
+            if (playerName === currentPlayer && chosenCards.length < 4) {
                 setPlayerCards(prevPlayerCards => {
                     return prevPlayerCards.filter(card => card.suit !== chosenCard.suit || card.value !== chosenCard.value);
                 });
             }
 
-            // After a card is chosen, check if there are now 4 cards to determine if the round should end
-            // if (chosenCards.length === 4) {
-            //     // Emit an event to the server to handle the end of the round
-            //     // socket.emit('endRound', ...); // You will need to implement this on the server-side
-            // }
-            socket.on('turn', (nextPlayerName: string) => {
-                setCurrentTurn(players.findIndex(p => p === nextPlayerName));
-            });
-            // Handling the turn should be separate from adding a card
-            const nextTurn = (currentTurn + 1) % players.length;
-            setCurrentTurn(nextTurn);
         });
 
         // Clean up the event listener when the component unmounts
         return () => {
             socket.off('cardChosen');
-            socket.off('turn');
         };
     }, [players, currentPlayer, chosenCards.length]);
 
@@ -150,29 +138,15 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('clearChosenCards', () => {
             setChosenCards([]); // Assuming setChosenCards is the state setter for chosenCards
+            setCanChooseCard(true);
         });
-        socket.on('turn', (playerName: string) => {
-            setCurrentTurn(players.findIndex(p => p === playerName));
-        });
-
 
         // Cleanup listener on component unmount
         return () => {
             socket.off('clearChosenCards');
-            socket.off('turn')
         };
 
     }, [socket]);
-
-    useEffect(() => {
-        socket.on('turn', (playerName: string) => {
-            setCurrentTurn(players.findIndex(p => p === playerName));
-        });
-
-        return () => {
-            socket.off('turn');
-        };
-    }, [players]); // Depend on players to recalculate when players state changes
 
 
     useEffect(() => {
@@ -189,16 +163,13 @@ const Game: React.FC = () => {
     }, [socket]);
 
     useEffect(() => {
-        socket.on('turn', (playerName: string) => {
-            setCurrentPlayer(playerName);
+        socket.on('update-turn',(turnIndex: number) => {
+            setCurrentTurnPlayer(turnIndex);
         });
-
         return () => {
-            socket.off('turn');
-        };
-    }, []); // This useEffect should only run once at mount, hence no dependencies
-
-
+            socket.off('update-turn');
+        }
+    }, [socket]);
     const handleJoinGame = () => {
         if (!hasJoined) {
             const playerName = prompt('Enter your name:');
@@ -214,19 +185,22 @@ const Game: React.FC = () => {
 
     const handleCardClick = (chosenCard: Card) => {
         console.log("Current Player: ", currentPlayer);
-        console.log("Current Turn Index: ", currentTurn);
-        console.log("Player at Current Turn: ", players[currentTurn]);
-
-        // Check if it's the current player's turn
-        if (currentPlayer !== players[currentTurn]) {
-            alert("It's not your turn!");
+        console.log("Current Turn Index: ", currentTurnPlayer);
+        console.log("Player at Current Turn: ", players[currentTurnPlayer]);
+        if (!canChooseCard) {
+            alert("Wait for the cards to be cleared.");
             return;
         }
+        if(players[currentTurnPlayer] !== currentPlayer) {
+            alert("Wait for your turn.");
+            return;
+        }
+
         // Emit the 'chooseCard' event with the chosen card
         socket.emit('chooseCard', currentPlayer, chosenCard);
+        socket.emit('turn', currentTurnPlayer);
 
     };
-
 
 
     return (
@@ -234,6 +208,9 @@ const Game: React.FC = () => {
             <h1>Whist Game</h1>
             <div className="stats-container">
                 {renderStatsTable()}
+                Current player turn: {players[currentTurnPlayer]}
+                <br/>
+                Current player : {currentPlayer}
             </div>
             {gameStarted ? (
                 <div className="game-board">
@@ -250,7 +227,8 @@ const Game: React.FC = () => {
                     ))}
                     <div className="center-cards">
                         {chosenCards.map((card, index) => (
-                            <div key={index} className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`}>
+                            <div key={index}
+                                 className={`card ${card.suit === '♠' || card.suit === '♣' ? 'black' : 'red'}`}>
                                 <span className="value">{card.value}</span>
                                 <span className="suit">{card.suit}</span>
                             </div>
