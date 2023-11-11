@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
         io.emit('updatePlayers', players.map(p => p.name));
         if (players.length === MAX_PLAYERS) {
             startGame();
-            io.emit('turn', players[currentTurn].name);
+            io.emit('update-turn', currentTurn); // Ensure the first turn is set
         }
         io.emit('playerStats', players);
     });
@@ -60,8 +60,8 @@ io.on('connection', (socket) => {
             setTimeout(() => {
                 currentRoundCards = [];
                 choosingCardAllowed = true; // Re-enable choosing of cards after a delay
-                currentTurn = winningPlayerIndex; // the winner of the round will start
-                // io.emit('update-turn',currentTurn);
+                currentTurn = winningPlayerIndex; // Set the winner of the round as the next to play
+                io.emit('update-turn', currentTurn); // Emit the updated turn
                 io.emit('clearChosenCards');
             }, 3000);
         }
@@ -83,7 +83,7 @@ io.on('connection', (socket) => {
         // I created a currentTurn with present the index of the player who turn to play.
         // complete the task give me the implementation here and also in the Game.tsx and explain the logic
         currentTurn = (currentTurn + 1) % players.length;
-        io.emit('update-turn',currentTurn);
+        io.emit('update-turn', currentTurn);
     })
 
 });
@@ -100,7 +100,7 @@ function determineHighestCard(currentRoundCards: { card: any; playerIndex: numbe
             highestCardIndex = playerIndex;
         }
     });
-
+    currentTurn = highestCardIndex;
     return highestCardIndex;
 }
 

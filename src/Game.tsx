@@ -15,7 +15,13 @@ interface PlayerHandProps {
 }
 
 
-const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (card: Card) => void }> = ({cards, playerName, currentPlayer, position, onCardClick}) => {
+const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (card: Card) => void }> = ({
+                                                                                                             cards,
+                                                                                                             playerName,
+                                                                                                             currentPlayer,
+                                                                                                             position,
+                                                                                                             onCardClick
+                                                                                                         }) => {
 
     return (
         <div className={`player ${position}`}>
@@ -125,8 +131,9 @@ const Game: React.FC = () => {
     }, [players, currentPlayer, chosenCards.length]);
 
     useEffect(() => {
-        socket.on('roundEnded', (updatedPlayers) => {
+        socket.on('roundEnded', (updatedPlayers, winningPlayerIndex) => {
             setPlayerStats(updatedPlayers); // Assuming playerStats is the state that holds the data for rendering the table
+
         });
 
         // Cleanup listener on component unmount
@@ -163,7 +170,7 @@ const Game: React.FC = () => {
     }, [socket]);
 
     useEffect(() => {
-        socket.on('update-turn',(turnIndex: number) => {
+        socket.on('update-turn', (turnIndex: number) => {
             setCurrentTurnPlayer(turnIndex);
         });
         return () => {
@@ -191,14 +198,19 @@ const Game: React.FC = () => {
             alert("Wait for the cards to be cleared.");
             return;
         }
-        if(players[currentTurnPlayer] !== currentPlayer) {
+        if (players[currentTurnPlayer] !== currentPlayer) {
             alert("Wait for your turn.");
             return;
-        }
+        } else {
 
-        // Emit the 'chooseCard' event with the chosen card
-        socket.emit('chooseCard', currentPlayer, chosenCard);
-        socket.emit('turn', currentTurnPlayer);
+            // Emit the 'chooseCard' event with the chosen card
+            socket.emit('chooseCard', currentPlayer, chosenCard);
+            if (chosenCards.length < 4) {
+                socket.emit('turn', currentTurnPlayer);
+            } else {
+                socket.emit('roundEnded',)
+            }
+        }
 
     };
 
