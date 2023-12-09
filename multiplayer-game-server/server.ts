@@ -79,11 +79,13 @@ io.on('connection', (socket) => {
     // Inside the io.on('connection', (socket) => { ... }) block
     socket.on('sliceSuitBid', (playerIndex, bid) => {
         if (isBiddingPhase) {
-            if (bid) {
+            if (bid !== null) {
                 // Player submitted a bid
                 if (bid > currentBetNumber) {
                     currentBetNumber = bid;
                     highestBidder = playerIndex;
+                } else {
+                    passedPlayer[playerIndex] = true;
                 }
             } else {
                 // Player passed
@@ -91,16 +93,25 @@ io.on('connection', (socket) => {
             }
 
             // Check if three players have passed
-            if (passedPlayer.filter(passed => passed).length >= 3) {
-                isBiddingPhase = false;
-                sliceSuit = currentBetSuit; // Set by the highest bidder
-            } else {
-                // Move to the next player
-                currentPlayerTurnBet = (currentPlayerTurnBet + 1) % players.length;
+            const passedCount = passedPlayer.filter(passed => passed).length;
+            if (passedCount >= 3) {
+                if (highestBidder == null) {
+                    isBiddingPhase = true;
+                } else {
+                    // If the current player has already passed or a bet has been made
+                    isBiddingPhase = false;
+                    sliceSuit = currentBetSuit; // Set by the highest bidder or default if no bets
+                }
             }
 
+            if (isBiddingPhase) {
+                // Move to the next player, skipping those who have passed
+                do {
+                    currentPlayerTurnBet = (currentPlayerTurnBet + 1) % players.length;
+                } while (passedPlayer[currentPlayerTurnBet] && passedCount < 4);
+            }
             // Update all clients with the new state
-            io.emit('sliceSuitUpdate', { currentBetNumber, highestBidder, currentPlayerTurnBet, isBiddingPhase });
+            io.emit('sliceSuitUpdate', {currentBetNumber, highestBidder, currentPlayerTurnBet, isBiddingPhase});
         }
     });
 
@@ -202,15 +213,15 @@ function determineHighestCard(currentRoundCards: { card: any; playerIndex: numbe
 
 
 function startGame() {
-        const deck = new Deck();
-        deck.shuffle();
-        const hands = deck.deal();
-        hands.forEach((handOfCards, index) => {
-            hands[index] = deck.sortCardsBySuitAndValue(handOfCards);
-        });
-        players.forEach((player, index) => {
-            io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
-        });
+    const deck = new Deck();
+    deck.shuffle();
+    const hands = deck.deal();
+    hands.forEach((handOfCards, index) => {
+        hands[index] = deck.sortCardsBySuitAndValue(handOfCards);
+    });
+    players.forEach((player, index) => {
+        io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
+    });
 
 }
 

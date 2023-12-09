@@ -54,6 +54,8 @@ const Game: React.FC = () => {
    // Slice suit
     const [isSliceSuitPhase, setIsSliceSuitPhase] = useState<boolean>(true);
     const [currentBid, setCurrentBid] = useState<number>(0);
+    const [highestBet, setHighestBet] = useState<{ amount: number, player: number | null }>({ amount: 0, player: null });
+    const [currentPlayerTurnToBid, setCurrentPlayerTurnToBid] = useState<number>(0);
 
     const renderStatsTable = () => {
         return (
@@ -107,22 +109,32 @@ const Game: React.FC = () => {
 
 
     // Slice suit phase
-    const handleBid = () => {
-        socket.emit('sliceSuitBid', currentTurnPlayer, currentBid);
-    };
-
-    const handlePass = () => {
-        socket.emit('sliceSuitBid', currentTurnPlayer, null);
-    };
-
     useEffect(() => {
         socket.on('sliceSuitUpdate', (data) => {
             setIsSliceSuitPhase(data.isBiddingPhase);
-            // Update other state variables as necessary based on the data received
+            setHighestBet({ amount: data.currentBetNumber, player: data.highestBidder });
+            setCurrentPlayerTurnToBid(data.currentPlayerTurnBet);
+            // ... other state updates
         });
     }, [socket]);
 
+    const handleBid = () => {
+        if (currentPlayer === players[currentPlayerTurnToBid]) {
+            socket.emit('sliceSuitBid', currentPlayerTurnToBid, currentBid);
+        } else {
+            alert("It's not your turn to bid.");
+        }
+    };
 
+    const handlePass = () => {
+        if (currentPlayer === players[currentPlayerTurnToBid]) {
+            socket.emit('sliceSuitBid', currentPlayerTurnToBid, null);
+        } else {
+            alert("It's not your turn to bid.");
+        }
+    };
+
+    // cardChosen event listener
     useEffect(() => {
         socket.on('cardChosen', (playerName: string, chosenCard: Card) => {
             setChosenCards(prevChosenCards => {
@@ -263,6 +275,13 @@ const Game: React.FC = () => {
                 Current player turn: {players[currentTurnPlayer]}
                 <br/>
                 Current player : {currentPlayer}
+                <br/>
+                {isSliceSuitPhase && (
+                    <div>
+                        Current player's turn to bid: Player {players[currentPlayerTurnToBid]}
+                    </div>
+                )}
+
             </div>
             {gameStarted ? (
                 <div className="game-board">
@@ -288,6 +307,11 @@ const Game: React.FC = () => {
                     </div>
                     {isSliceSuitPhase && (
                         <div className="bidding-section">
+                            <div>
+                                Current Highest Bet: {highestBet.amount} by
+                                Player {highestBet.player !== null ? players[highestBet.player] : 'N/A'}
+                            </div>
+                            <br/>
                             <input
                                 type="number"
                                 value={currentBid}
