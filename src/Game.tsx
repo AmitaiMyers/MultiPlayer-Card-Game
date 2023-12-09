@@ -56,7 +56,7 @@ const Game: React.FC = () => {
     const [currentBid, setCurrentBid] = useState<number>(0);
     const [highestBet, setHighestBet] = useState<{ amount: number, player: number | null }>({ amount: 0, player: null });
     const [currentPlayerTurnToBid, setCurrentPlayerTurnToBid] = useState<number>(0);
-
+    const [currentBetSuit, setCurrentBetSuit] = useState<string>('♣');
     const renderStatsTable = () => {
         return (
             <table className="stats-table">
@@ -120,7 +120,7 @@ const Game: React.FC = () => {
 
     const handleBid = () => {
         if (currentPlayer === players[currentPlayerTurnToBid]) {
-            socket.emit('sliceSuitBid', currentPlayerTurnToBid, currentBid);
+            socket.emit('sliceSuitBid', currentPlayerTurnToBid, {number:currentBid, suit:currentBetSuit});
         } else {
             alert("It's not your turn to bid.");
         }
@@ -266,7 +266,6 @@ const Game: React.FC = () => {
 
 
     return (
-
         <div className="game-container">
             <h2>Players Connected: {playerCount}</h2>
             <h1>Whist Game</h1>
@@ -317,6 +316,16 @@ const Game: React.FC = () => {
                                 value={currentBid}
                                 onChange={(e) => setCurrentBid(Number(e.target.value))}
                             />
+                            <select
+                                className="bet-input"
+                                value={currentBetSuit}
+                                onChange={(e) => setCurrentBetSuit(e.target.value)}
+                            >
+                                <option value="♣">♣</option>
+                                <option value="♦">♦</option>
+                                <option value="♥">♥</option>
+                                <option value="♠">♠</option>
+                            </select>
                             <button onClick={handleBid}>Place Bid</button>
                             <button onClick={handlePass}>Pass</button>
                         </div>
