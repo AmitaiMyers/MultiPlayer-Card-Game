@@ -51,7 +51,9 @@ const Game: React.FC = () => {
     const [currentTurnPlayer, setCurrentTurnPlayer] = useState<number>(0);
     const [playerStats, setPlayerStats] = useState<Player[]>([]);
     const [canChooseCard, setCanChooseCard] = useState<boolean>(true);
-
+   // Slice suit
+    const [isSliceSuitPhase, setIsSliceSuitPhase] = useState<boolean>(true);
+    const [currentBid, setCurrentBid] = useState<number>(0);
 
     const renderStatsTable = () => {
         return (
@@ -102,6 +104,23 @@ const Game: React.FC = () => {
         });
 
     }, [currentPlayer]);
+
+
+    // Slice suit phase
+    const handleBid = () => {
+        socket.emit('sliceSuitBid', currentTurnPlayer, currentBid);
+    };
+
+    const handlePass = () => {
+        socket.emit('sliceSuitBid', currentTurnPlayer, null);
+    };
+
+    useEffect(() => {
+        socket.on('sliceSuitUpdate', (data) => {
+            setIsSliceSuitPhase(data.isBiddingPhase);
+            // Update other state variables as necessary based on the data received
+        });
+    }, [socket]);
 
 
     useEffect(() => {
@@ -194,6 +213,10 @@ const Game: React.FC = () => {
         console.log("Current Player: ", currentPlayer);
         console.log("Current Turn Index: ", currentTurnPlayer);
         console.log("Player at Current Turn: ", players[currentTurnPlayer]);
+        if(isSliceSuitPhase){
+            alert("Choose a suit to slice.");
+            return;
+        }
         if (!canChooseCard) {
             alert("Wait for the cards to be cleared.");
             return;
@@ -214,9 +237,26 @@ const Game: React.FC = () => {
 
     };
 
+    // State to keep track of the number of connected players
+    const [playerCount, setPlayerCount] = useState(0);
+
+// Listen for player count updates from the server
+    useEffect(() => {
+        socket.on('playerCount', count => {
+            setPlayerCount(count);
+        });
+
+        return () => {
+            socket.off('playerCount');
+        };
+    }, []);
+
+
 
     return (
+
         <div className="game-container">
+            <h2>Players Connected: {playerCount}</h2>
             <h1>Whist Game</h1>
             <div className="stats-container">
                 {renderStatsTable()}
@@ -246,7 +286,17 @@ const Game: React.FC = () => {
                             </div>
                         ))}
                     </div>
-
+                    {isSliceSuitPhase && (
+                        <div className="bidding-section">
+                            <input
+                                type="number"
+                                value={currentBid}
+                                onChange={(e) => setCurrentBid(Number(e.target.value))}
+                            />
+                            <button onClick={handleBid}>Place Bid</button>
+                            <button onClick={handlePass}>Pass</button>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div>
