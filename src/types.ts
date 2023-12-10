@@ -6,4 +6,3 @@ export interface Player {
     takes: number;
     score: number;
 }
-

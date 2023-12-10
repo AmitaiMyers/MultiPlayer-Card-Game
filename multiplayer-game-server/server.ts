@@ -22,14 +22,21 @@ let currentRoundCards: any[] = [];
 let currentTurn = 0;
 let currentRound = 1;
 let choosingCardAllowed = true; // To control card choosing
+type Suit = '♣' | '♦' | '♥' | '♠';
+const suitStrength: Record<Suit, number> = { '♣': 1, '♦': 2, '♥': 3, '♠': 4 };
 
+// Assuming bid object is of type:
+interface Bid {
+    number: number;
+    suit: Suit;
+}
 // Slice suit phase
 let currentPlayerTurnBet: number = 0;
 let isBiddingPhase: boolean = true;
 let passedPlayer: boolean[] = [false, false, false, false];
 let highestBidder: number | null = null;
 let currentBetNumber: number = 0;
-let currentBetSuit: string = '♣';
+let currentBetSuit: Suit = '♣';
 let sliceSuit: string | null = null;
 // let playersBets: { number: number, suit: string | null }[] = [{number: 0, suit: null},
 //     {number: 0, suit: null},
@@ -77,14 +84,19 @@ io.on('connection', (socket) => {
 
     // Slice suit phase
     // Inside the io.on('connection', (socket) => { ... }) block
-    socket.on('sliceSuitBid', (playerIndex, bid) => {
+    socket.on('sliceSuitBid', (playerIndex, bid:Bid) => {
         if (isBiddingPhase) {
             if (bid !== null) {
                 // Player submitted a bid
-                if (bid > currentBetNumber) {
-                    currentBetNumber = bid;
+                const isNewBidHigher = bid.number > currentBetNumber ||
+                    (bid.number === currentBetNumber && suitStrength[bid.suit] > suitStrength[currentBetSuit]);
+
+                if (isNewBidHigher) {
+                    currentBetNumber = bid.number;
+                    currentBetSuit = bid.suit; // Store the suit of the bid
                     highestBidder = playerIndex;
                 } else {
+                    // Player passed
                     passedPlayer[playerIndex] = true;
                 }
             } else {
