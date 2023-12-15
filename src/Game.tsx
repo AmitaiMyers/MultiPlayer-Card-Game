@@ -58,9 +58,10 @@ const Game: React.FC = () => {
     const [currentPlayerTurnToBid, setCurrentPlayerTurnToBid] = useState<number>(0);
     const [currentBetSuit, setCurrentBetSuit] = useState<string>('♣');
     const [currentSliceSuit, setCurrentSliceSuit] = useState<string>('♣');
-    const [declarePlayers, setDeclarePlayers] = useState<number[]>([]);
-    const [takePlayers, setTakePlayers] = useState<number[]>([]);
-    const [scorePlayers, setScorePlayers] = useState<number[]>([]);
+    // Declare phase
+    const [isDeclarePhase, setIsDeclarePhase] = useState<boolean>(false);
+    const [currentDeclareTurn, setCurrentDeclareTurn] = useState<number>(0);
+    const [declareNumber, setDeclareNumber] = useState<number>(0); // State to store the declare number
 
     const renderStatsTable = () => {
         return (
@@ -74,14 +75,18 @@ const Game: React.FC = () => {
                 </tr>
                 </thead>
                 <tbody>
-                {players.map((player, index) => (
-                    <tr key={index}>
-                        <td>{player}</td>
-                        <td>{declarePlayers[index]}</td>
-                        <td>{takePlayers[index]}</td>
-                        <td>{scorePlayers[index]}</td>
-                    </tr>
-                ))}
+                {players.map((player, index) => {
+                    const stats = playerStats[index];
+                    return (
+                        <tr key={index}>
+                            <td>{player}</td>
+                            <td>{stats ? stats.guess : 'N/A'}</td>
+                            <td>{stats ? stats.takes : 'N/A'}</td>
+                            <td>{stats ? stats.score : 'N/A'}</td>
+                        </tr>
+                    );
+                })}
+
                 </tbody>
             </table>
         );
@@ -102,9 +107,6 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('updatePlayers', (updatedPlayers: string[]) => {
             setPlayers(updatedPlayers);
-            setDeclarePlayers(new Array(updatedPlayers.length).fill(-1));
-            setTakePlayers(new Array(updatedPlayers.length).fill(0));
-            setScorePlayers(new Array(updatedPlayers.length).fill(0));
         });
         socket.on('gameStarted', (playerName: string, cards: Card[]) => {
             console.log('Game started for player:', playerName);
@@ -146,6 +148,44 @@ const Game: React.FC = () => {
             socket.emit('sliceSuitBid', currentPlayerTurnToBid, null);
         } else {
             alert("It's not your turn to bid.");
+        }
+    };
+
+    useEffect(() => {
+        socket.on('startDeclarePhase', (declareTurnIndex) => {
+            setIsDeclarePhase(true);
+            setCurrentDeclareTurn(declareTurnIndex);
+        });
+    }, [socket]);
+
+    useEffect(() => {
+        socket.on('declarePhaseEnded', () => {
+            setIsDeclarePhase(false);
+            alert("Declare phase has ended."); // or handle it in a more suitable way for your UI
+        });
+
+        return () => {
+            socket.off('declarePhaseEnded');
+        };
+    }, [socket]);
+
+    useEffect(() => {
+        socket.on('updateDeclareTurn', (newDeclareTurn) => {
+            setCurrentDeclareTurn(newDeclareTurn);
+        });
+
+        return () => {
+            socket.off('updateDeclareTurn');
+        };
+    }, [socket]);
+
+
+
+    const handleDeclareSubmit = () => {
+        if (currentPlayer === players[currentDeclareTurn]) {
+            socket.emit('declare', currentDeclareTurn, declareNumber);
+        } else {
+            alert("It's not your turn to declare.");
         }
     };
 
@@ -294,6 +334,11 @@ const Game: React.FC = () => {
                         Current player's turn to bid: Player {players[currentPlayerTurnToBid]}
                     </div>
                 )}
+                {isDeclarePhase && (
+                    <div>
+                        Current player to declare: {players[currentDeclareTurn]}
+                    </div>
+                )}
                 <br/>
                 {!isSliceSuitPhase && gameStarted && (
                     <div>
@@ -365,6 +410,20 @@ const Game: React.FC = () => {
                     </div>
                 </div>
             )}
+            {gameStarted && isDeclarePhase && (
+                <div className="declare-section">
+                    <div>
+                        Current player's turn to declare: Player {players[currentDeclareTurn]}
+                    </div>
+                    <input
+                        type="number"
+                        value={declareNumber}
+                        onChange={(e) => setDeclareNumber(Number(e.target.value))}
+                    />
+                    <button onClick={handleDeclareSubmit}>Submit Declare</button>
+                </div>
+            )}
+
         </div>
     );
 };

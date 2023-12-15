@@ -44,6 +44,7 @@ let sliceSuit: Suit | null = null;
 let currentDeclareTurn: number = 0;
 let isDeclarePhase = false;
 let sumOfDeclares = 0;
+let declaredPlayers:boolean[] = [false,false,false,false];
 
 io.on('connection', (socket) => {
     let currentPlayerName = '';
@@ -103,6 +104,10 @@ io.on('connection', (socket) => {
                     sliceSuit,
                     players  // Include the players array if needed for the client-side update
                 });
+                if (highestBidder !== null) {
+                    startDeclarePhase();
+                    return; // Exit the function to prevent emitting sliceSuitUpdate
+                }
             }
 
             if (isBiddingPhase) {
@@ -126,13 +131,21 @@ io.on('connection', (socket) => {
     socket.on('declare', (playerIndex, declareNumber) => {
         if (isDeclarePhase) {
             players[playerIndex].guess = declareNumber;
+            declaredPlayers[playerIndex] = true; // Mark the player as having declared
             currentDeclareTurn = (currentDeclareTurn + 1) % players.length;
             io.emit('playerStats', players);
+            io.emit('updateDeclareTurn', currentDeclareTurn); // Emit new event
 
             // Check if all players have declared to end the declare phase
-            // ...
+            const allDeclared = declaredPlayers.every(declared => declared);
+            if (allDeclared) {
+                isDeclarePhase = false;
+                io.emit('declarePhaseEnded'); // Announce the end of declare phase
+            }
         }
     });
+
+
 
 
     socket.on('chooseCard', (playerName: string, chosenCard: any) => {
@@ -230,12 +243,19 @@ function determineHighestCard(currentRoundCards: { card: any; playerIndex: numbe
     return highestCardIndex;
 }
 
-function startDeclarePhase() {
-    isDeclarePhase = true;
-    currentDeclareTurn = highestBidder!;
-    io.emit('startDeclarePhase', currentDeclareTurn);
+function startBiddingPhase() {
+    isBiddingPhase = true;
+    currentPlayerTurnBet = 0; // Assuming the bidding starts from the first player
+    // Reset other relevant variables if needed
+    io.emit('startBiddingPhase');
 }
 
+function startDeclarePhase() {
+    isDeclarePhase = true;
+    currentDeclareTurn = highestBidder !== null ? highestBidder : 0; // Start with the highest bidder or first player if no bids
+    isBiddingPhase = false; // End bidding phase
+    io.emit('startDeclarePhase', currentDeclareTurn);
+}
 
 function startGame() {
     const deck = new Deck();
@@ -248,6 +268,8 @@ function startGame() {
         io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
     });
 
+    // Start the bidding phase
+    startBiddingPhase();
 }
 
 const PORT = 3001;
