@@ -64,6 +64,8 @@ const Game: React.FC = () => {
     const [declareNumber, setDeclareNumber] = useState<number>(0); // State to store the declare number
 
     const renderStatsTable = () => {
+        console.log("Players:", players);
+        console.log("Player Stats:", playerStats);
         return (
             <table className="stats-table">
                 <thead>
