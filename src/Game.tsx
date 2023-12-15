@@ -57,6 +57,11 @@ const Game: React.FC = () => {
     const [highestBet, setHighestBet] = useState<{ amount: number, player: number | null }>({ amount: 0, player: null });
     const [currentPlayerTurnToBid, setCurrentPlayerTurnToBid] = useState<number>(0);
     const [currentBetSuit, setCurrentBetSuit] = useState<string>('♣');
+    const [currentSliceSuit, setCurrentSliceSuit] = useState<string>('♣');
+    const [declarePlayers, setDeclarePlayers] = useState<number[]>([]);
+    const [takePlayers, setTakePlayers] = useState<number[]>([]);
+    const [scorePlayers, setScorePlayers] = useState<number[]>([]);
+
     const renderStatsTable = () => {
         return (
             <table className="stats-table">
@@ -69,18 +74,19 @@ const Game: React.FC = () => {
                 </tr>
                 </thead>
                 <tbody>
-                {playerStats.map((player, index) => (
+                {players.map((player, index) => (
                     <tr key={index}>
-                        <td>{player.name}</td>
-                        <td>{player.guess}</td>
-                        <td>{player.takes}</td>
-                        <td>{player.score}</td>
+                        <td>{player}</td>
+                        <td>{declarePlayers[index]}</td>
+                        <td>{takePlayers[index]}</td>
+                        <td>{scorePlayers[index]}</td>
                     </tr>
                 ))}
                 </tbody>
             </table>
         );
     };
+
 
 
     const getPlayerPosition = (playerName: string) => {
@@ -96,6 +102,9 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('updatePlayers', (updatedPlayers: string[]) => {
             setPlayers(updatedPlayers);
+            setDeclarePlayers(new Array(updatedPlayers.length).fill(-1));
+            setTakePlayers(new Array(updatedPlayers.length).fill(0));
+            setScorePlayers(new Array(updatedPlayers.length).fill(0));
         });
         socket.on('gameStarted', (playerName: string, cards: Card[]) => {
             console.log('Game started for player:', playerName);
@@ -104,6 +113,10 @@ const Game: React.FC = () => {
                 setPlayerCards(cards);
             }
         });
+
+        return () => {
+            socket.off('updatePlayers');
+        };
 
     }, [currentPlayer]);
 
@@ -114,7 +127,9 @@ const Game: React.FC = () => {
             setIsSliceSuitPhase(data.isBiddingPhase);
             setHighestBet({ amount: data.currentBetNumber, player: data.highestBidder });
             setCurrentPlayerTurnToBid(data.currentPlayerTurnBet);
-            // ... other state updates
+            setCurrentSliceSuit(data.sliceSuit);
+            setPlayerStats(data.players);  // Update player stats to reflect the changes
+            // ... [other state updates] ...
         });
     }, [socket]);
 
@@ -264,7 +279,6 @@ const Game: React.FC = () => {
     }, []);
 
 
-
     return (
         <div className="game-container">
             <h2>Players Connected: {playerCount}</h2>
@@ -279,6 +293,13 @@ const Game: React.FC = () => {
                     <div>
                         Current player's turn to bid: Player {players[currentPlayerTurnToBid]}
                     </div>
+                )}
+                <br/>
+                {!isSliceSuitPhase && gameStarted && (
+                    <div>
+                        Current slice suit: {currentSliceSuit}
+                    </div>
+
                 )}
 
             </div>
@@ -307,7 +328,7 @@ const Game: React.FC = () => {
                     {isSliceSuitPhase && (
                         <div className="bidding-section">
                             <div>
-                                Current Highest Bet: {highestBet.amount} by
+                                Current Highest Bet: {highestBet.amount} {currentBetSuit} by
                                 Player {highestBet.player !== null ? players[highestBet.player] : 'N/A'}
                             </div>
                             <br/>
