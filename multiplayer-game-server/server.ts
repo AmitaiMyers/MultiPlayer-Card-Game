@@ -61,6 +61,9 @@ io.on('connection', (socket) => {
             io.emit('update-turn', currentTurn); // Ensure the first turn is set
         }
         io.emit('playerStats', players);
+        // Reset declaredPlayers when a new game starts
+        declaredPlayers = declaredPlayers.map(() => false);
+
     });
 
     // Slice suit phase
@@ -106,7 +109,6 @@ io.on('connection', (socket) => {
                 });
                 if (highestBidder !== null) {
                     startDeclarePhase();
-                    return; // Exit the function to prevent emitting sliceSuitUpdate
                 }
             }
 
@@ -132,18 +134,24 @@ io.on('connection', (socket) => {
         if (isDeclarePhase) {
             players[playerIndex].guess = declareNumber;
             declaredPlayers[playerIndex] = true; // Mark the player as having declared
-            currentDeclareTurn = (currentDeclareTurn + 1) % players.length;
-            io.emit('playerStats', players);
-            io.emit('updateDeclareTurn', currentDeclareTurn); // Emit new event
 
             // Check if all players have declared to end the declare phase
             const allDeclared = declaredPlayers.every(declared => declared);
+
             if (allDeclared) {
                 isDeclarePhase = false;
+                declaredPlayers = declaredPlayers.map(() => false); // Reset for next declare phase
                 io.emit('declarePhaseEnded'); // Announce the end of declare phase
+            } else {
+                // Move to the next player only if not all players have declared
+                currentDeclareTurn = (currentDeclareTurn + 1) % players.length;
+                io.emit('updateDeclareTurn', currentDeclareTurn); // Update declare turn
             }
+
+            io.emit('playerStats', players); // Emit player stats after every declaration
         }
     });
+
 
 
 
@@ -176,10 +184,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        // Remove player on disconnect
         const playerIndex = players.findIndex(p => p.name === currentPlayerName);
         if (playerIndex !== -1) {
             players.splice(playerIndex, 1);
             io.emit('updatePlayers', players.map(p => p.name));
+            // Reset or adjust game state as necessary
         }
     });
 

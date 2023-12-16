@@ -64,8 +64,6 @@ const Game: React.FC = () => {
     const [declareNumber, setDeclareNumber] = useState<number>(0); // State to store the declare number
 
     const renderStatsTable = () => {
-        console.log("Players:", players);
-        console.log("Player Stats:", playerStats);
         return (
             <table className="stats-table">
                 <thead>
@@ -78,21 +76,32 @@ const Game: React.FC = () => {
                 </thead>
                 <tbody>
                 {players.map((player, index) => {
-                    const stats = playerStats[index];
+                    const stats = playerStats[index] || { guess: 'N/A', takes: 'N/A', score: 'N/A' };
                     return (
                         <tr key={index}>
                             <td>{player}</td>
-                            <td>{stats ? stats.guess : 'N/A'}</td>
-                            <td>{stats ? stats.takes : 'N/A'}</td>
-                            <td>{stats ? stats.score : 'N/A'}</td>
+                            {/*<td>{stats.guess}</td>*/}
+                            {/*<td>{stats.takes}</td>*/}
+                            {/*<td>{stats.score}</td>*/}
                         </tr>
                     );
                 })}
-
                 </tbody>
             </table>
         );
     };
+
+    useEffect(() => {
+        const handlePlayerStats = (stats: Player[]) => {
+            setPlayerStats(stats);
+        };
+
+        socket.on('playerStats', handlePlayerStats);
+
+        return () => {
+            socket.off('playerStats', handlePlayerStats);
+        };
+    }, [socket]);
 
 
 
