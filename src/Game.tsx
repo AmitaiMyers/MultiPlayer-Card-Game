@@ -42,6 +42,7 @@ const PlayerHand: React.FC<PlayerHandProps & { position: string, onCardClick: (c
 };
 
 const Game: React.FC = () => {
+    // const [players, setPlayers] = useState<Player[]>([]);
     const [players, setPlayers] = useState<string[]>([]);
     const [hasJoined, setHasJoined] = useState<boolean>(false);
     const [gameStarted, setGameStarted] = useState<boolean>(false);
@@ -75,17 +76,27 @@ const Game: React.FC = () => {
                 </tr>
                 </thead>
                 <tbody>
-                {players.map((player, index) => {
-                    const stats = playerStats[index] || { guess: 'N/A', takes: 'N/A', score: 'N/A' };
+                {playerStats.map((player, index) => {
                     return (
                         <tr key={index}>
-                            <td>{player}</td>
-                            {/*<td>{stats.guess}</td>*/}
-                            {/*<td>{stats.takes}</td>*/}
-                            {/*<td>{stats.score}</td>*/}
+                            <td>{player.name}</td>
+                            <td>{player.guess}</td>
+                            <td>{player.takes}</td>
+                            <td>{player.score}</td>
                         </tr>
                     );
-                })}
+                })};
+                {/*{players.map((player, index) => {*/}
+                {/*    const stats = playerStats[index] || { guess: 'N/A', takes: 'N/A', score: 'N/A' };*/}
+                {/*    return (*/}
+                {/*        <tr key={index}>*/}
+                {/*            <td>{player}</td>*/}
+                {/*            /!*<td>{stats.guess}</td>*!/*/}
+                {/*            /!*<td>{stats.takes}</td>*!/*/}
+                {/*            /!*<td>{stats.score}</td>*!/*/}
+                {/*        </tr>*/}
+                {/*    );*/}
+                {/*})}*/}
                 </tbody>
             </table>
         );
@@ -116,7 +127,7 @@ const Game: React.FC = () => {
 
 
     useEffect(() => {
-        socket.on('updatePlayers', (updatedPlayers: string[]) => {
+        socket.on('updatePlayers', (updatedPlayers:string[]) => {
             setPlayers(updatedPlayers);
         });
         socket.on('gameStarted', (playerName: string, cards: Card[]) => {

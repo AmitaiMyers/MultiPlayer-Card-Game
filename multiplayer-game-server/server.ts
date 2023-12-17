@@ -56,6 +56,7 @@ io.on('connection', (socket) => {
             players.push({name: playerName, index: players.length, socketId: socket.id, guess: 0, takes: 0, score: 0});
         }
         io.emit('updatePlayers', players.map(p => p.name));
+        // io.emit('updatePlayers',players);
         if (players.length === MAX_PLAYERS) {
             startGame();
             io.emit('update-turn', currentTurn); // Ensure the first turn is set
