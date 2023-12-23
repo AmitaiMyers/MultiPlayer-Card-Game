@@ -53,7 +53,14 @@ io.on('connection', (socket) => {
         currentPlayerName = playerName;
         const existingPlayer = players.find(p => p.name === playerName);
         if (!existingPlayer) {
-            players.push({name: playerName, index: players.length, socketId: socket.id, declare: 0, takes: 0, score: 0});
+            players.push({
+                name: playerName,
+                index: players.length,
+                socketId: socket.id,
+                declare: 0,
+                takes: 0,
+                score: 0
+            });
         }
         // io.emit('updatePlayers', players.map(p => p.name));
         io.emit('updatePlayers', players);
@@ -90,49 +97,58 @@ io.on('connection', (socket) => {
 
             // Check if three players have passed
             const passedCount = passedPlayer.filter(passed => passed).length;
-            if (passedCount >= 3) {
-                if (highestBidder == null) {
-                    isBiddingPhase = true;
-                } else {
-                    // If the current player has already passed or a bet has been made
-                    isBiddingPhase = false;
-                    sliceSuit = currentBetSuit; // Set by the highest bidder or default if no bets
-                    players[playerIndex].declare = currentBetNumber;
-                    io.emit('playerStats', players);
+            if (passedCount === players.length && highestBidder == null) {
+                startGame();
+            } else {
+
+                if (passedCount >= 3) {
+                    if (highestBidder == null) {
+                        isBiddingPhase = true;
+                    } else {
+                        // If the current player has already passed or a bet has been made
+                        isBiddingPhase = false;
+                        sliceSuit = currentBetSuit; // Set by the highest bidder or default if no bets
+                        players[playerIndex].declare = currentBetNumber;
+                        io.emit('playerStats', players);
+                    }
+                    io.emit('sliceSuitUpdate', {
+                        currentBetNumber,
+                        highestBidder,
+                        currentPlayerTurnBet,
+                        isBiddingPhase,
+                        sliceSuit,
+                        players  // Include the players array if needed for the client-side update
+                    });
+                    if (highestBidder !== null) {
+                        startDeclarePhase();
+                    }
                 }
+
+                if (isBiddingPhase) {
+                    // Move to the next player, skipping those who have passed
+                    do {
+                        currentPlayerTurnBet = (currentPlayerTurnBet + 1) % players.length;
+                    } while (passedPlayer[currentPlayerTurnBet] && passedCount < 4);
+                }
+                // Update all clients with the new state
                 io.emit('sliceSuitUpdate', {
                     currentBetNumber,
                     highestBidder,
                     currentPlayerTurnBet,
                     isBiddingPhase,
-                    sliceSuit,
-                    players  // Include the players array if needed for the client-side update
+                    sliceSuit
                 });
-                if (highestBidder !== null) {
-                    startDeclarePhase();
-                }
             }
-
-            if (isBiddingPhase) {
-                // Move to the next player, skipping those who have passed
-                do {
-                    currentPlayerTurnBet = (currentPlayerTurnBet + 1) % players.length;
-                } while (passedPlayer[currentPlayerTurnBet] && passedCount < 4);
-            }
-            // Update all clients with the new state
-            io.emit('sliceSuitUpdate', {
-                currentBetNumber,
-                highestBidder,
-                currentPlayerTurnBet,
-                isBiddingPhase,
-                sliceSuit
-            });
         }
     });
 
     // Declare phase
     socket.on('declare', (playerIndex, declareNumber) => {
         if (isDeclarePhase) {
+            if (playerIndex === highestBidder && declareNumber < currentBetNumber) {
+                socket.emit('declareError', 'Your declare cannot be less than the highest bid');
+                return;
+            }
             players[playerIndex].declare = declareNumber;
             declaredPlayers[playerIndex] = true;
 
@@ -149,7 +165,6 @@ io.on('connection', (socket) => {
             io.emit('playerStats', players); // Update all clients with the latest stats
         }
     });
-
 
 
     socket.on('chooseCard', (playerName: string, chosenCard: any) => {
@@ -192,7 +207,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         players = players.filter(player => player.socketId !== socket.id);
-        io.emit('updatePlayers',players);
+        io.emit('updatePlayers', players);
         // Additional game state adjustments can be added here
     })
 
@@ -270,6 +285,38 @@ function startDeclarePhase() {
     io.emit('startDeclarePhase', currentDeclareTurn);
 }
 
+function calculateScores(sumOfDeclares: number) {
+    players.forEach(player => {
+        if (player.takes === player.declare) {
+            if (player.declare === 0) {
+                if (sumOfDeclares > 13) { // UP
+                    player.score += 10;
+                } else { // sumOfDeclares < 13 DOWN
+                    player.score += 30;
+                }
+            } else {
+                player.score += (player.declare * player.declare + 10);
+            }
+        } else {
+            if (player.declare === 0 && sumOfDeclares < 13) {
+                player.score -= (30 - ((Math.abs(player.declare - player.takes) - 1) * 10));
+            } else {
+                player.score -= (Math.abs(player.declare - player.takes) * 10);
+            }
+        }
+    });
+}
+
+// Call this function at the end of a round
+function endRound() {
+    calculateScores(sumOfDeclares);
+    // Emit an event to the client to update the scores
+    io.emit('updateScores', players);
+
+    // Additional logic to reset the round, deal new cards, etc.
+}
+
+
 function startGame() {
     const deck = new Deck();
     deck.shuffle();
@@ -280,6 +327,16 @@ function startGame() {
     players.forEach((player, index) => {
         io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
     });
+    // Reset bidding phase related variables
+    currentPlayerTurnBet = 0;
+    isBiddingPhase = true;
+    passedPlayer.fill(false);
+    highestBidder = null;
+    currentBetNumber = 0;
+    currentBetSuit = '♣';
+    sliceSuit = null;
+    // Emit an event to notify players about the new round
+    io.emit('newRoundStarted');
 
     // Start the bidding phase
     startBiddingPhase();

@@ -150,7 +150,36 @@ const Game: React.FC = () => {
         });
     }, [socket]);
 
+    useEffect(() => {
+        socket.on('declareError', (errorMessage) => {
+            alert(errorMessage); // or handle the error in a more sophisticated way
+        });
+
+        return () => {
+            socket.off('declareError');
+        };
+    }, [socket]);
+
+    // need to implement this for the new round
+    useEffect(() => {
+        socket.on('newRoundStarted', () => {
+            console.log('New round started');
+            // Handle new round logic here, e.g., resetting state
+            setChosenCards([]);
+            // ... other state resets as needed ...
+        });
+
+        return () => {
+            socket.off('newRoundStarted');
+        };
+    }, [socket]);
+
+
     const handleBid = () => {
+        if (currentBid < 5) {
+            alert("No bid under 5 is allowed.");
+            return;
+        }
         // Check if the currentPlayer exists in the players array and get their index
         const currentPlayerIndex = players.findIndex(player => player.name === currentPlayer);
 
@@ -204,6 +233,10 @@ const Game: React.FC = () => {
 
 
     const handleDeclareSubmit = () => {
+        if (declareNumber < 0) {
+            alert("HAHA.");
+            return;
+        }
         // Find the index of the current player in the players array
         const currentPlayerIndex = players.findIndex(player => player.name === currentPlayer);
 
@@ -404,7 +437,9 @@ const Game: React.FC = () => {
                             </div>
                             <br/>
                             <input type="number" value={currentBid}
-                                   onChange={(e) => setCurrentBid(Number(e.target.value))}/>
+                                   onChange={(e) => setCurrentBid(Number(e.target.value))}
+                                   min="0"
+                                   max="13"/>
                             <select className="bet-input" value={currentBetSuit}
                                     onChange={(e) => setCurrentBetSuit(e.target.value)}>
                                 <option value="♣">♣</option>
@@ -436,7 +471,9 @@ const Game: React.FC = () => {
                         Current player's turn to declare: Player {players[currentDeclareTurn]?.name}
                     </div>
                     <input type="number" value={declareNumber}
-                           onChange={(e) => setDeclareNumber(Number(e.target.value))}/>
+                           onChange={(e) => setDeclareNumber(Number(e.target.value))}
+                           min="0"
+                           max="13"/>
                     <button onClick={handleDeclareSubmit}>Submit Declare</button>
                 </div>
             )}
