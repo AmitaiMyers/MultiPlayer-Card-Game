@@ -15,7 +15,7 @@ app.use(cors({origin: "http://localhost:3000", methods: ["GET", "POST"], credent
 const server = http.createServer(app);
 const io = new Server(server, {cors: {origin: "http://localhost:3000", methods: ["GET", "POST"], credentials: true}});
 
-const players: Player[] = [];
+let players: Player[] = [];
 const MAX_PLAYERS = 4;
 const MAX_CARDS_SLOT = 4;
 let currentRoundCards: any[] = [];
@@ -44,7 +44,7 @@ let sliceSuit: Suit | null = null;
 let currentDeclareTurn: number = 0;
 let isDeclarePhase = false;
 let sumOfDeclares = 0;
-let declaredPlayers:boolean[] = [false,false,false,false];
+let declaredPlayers: boolean[] = [false, false, false, false];
 
 io.on('connection', (socket) => {
     let currentPlayerName = '';
@@ -53,10 +53,10 @@ io.on('connection', (socket) => {
         currentPlayerName = playerName;
         const existingPlayer = players.find(p => p.name === playerName);
         if (!existingPlayer) {
-            players.push({name: playerName, index: players.length, socketId: socket.id, guess: 0, takes: 0, score: 0});
+            players.push({name: playerName, index: players.length, socketId: socket.id, declare: 0, takes: 0, score: 0});
         }
-        io.emit('updatePlayers', players.map(p => p.name));
-        // io.emit('updatePlayers',players);
+        // io.emit('updatePlayers', players.map(p => p.name));
+        io.emit('updatePlayers', players);
         if (players.length === MAX_PLAYERS) {
             startGame();
             io.emit('update-turn', currentTurn); // Ensure the first turn is set
@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
                     // If the current player has already passed or a bet has been made
                     isBiddingPhase = false;
                     sliceSuit = currentBetSuit; // Set by the highest bidder or default if no bets
-                    players[playerIndex].guess = currentBetNumber;
+                    players[playerIndex].declare = currentBetNumber;
                     io.emit('playerStats', players);
                 }
                 io.emit('sliceSuitUpdate', {
@@ -133,27 +133,22 @@ io.on('connection', (socket) => {
     // Declare phase
     socket.on('declare', (playerIndex, declareNumber) => {
         if (isDeclarePhase) {
-            players[playerIndex].guess = declareNumber;
-            declaredPlayers[playerIndex] = true; // Mark the player as having declared
+            players[playerIndex].declare = declareNumber;
+            declaredPlayers[playerIndex] = true;
 
-            // Check if all players have declared to end the declare phase
             const allDeclared = declaredPlayers.every(declared => declared);
-
             if (allDeclared) {
                 isDeclarePhase = false;
-                declaredPlayers = declaredPlayers.map(() => false); // Reset for next declare phase
-                io.emit('declarePhaseEnded'); // Announce the end of declare phase
+                declaredPlayers.fill(false); // Reset declaredPlayers
+                io.emit('declarePhaseEnded');
             } else {
-                // Move to the next player only if not all players have declared
                 currentDeclareTurn = (currentDeclareTurn + 1) % players.length;
-                io.emit('updateDeclareTurn', currentDeclareTurn); // Update declare turn
+                io.emit('updateDeclareTurn', currentDeclareTurn);
             }
 
-            io.emit('playerStats', players); // Emit player stats after every declaration
+            io.emit('playerStats', players); // Update all clients with the latest stats
         }
     });
-
-
 
 
 
@@ -172,6 +167,7 @@ io.on('connection', (socket) => {
         if (currentRoundCards.length === MAX_CARDS_SLOT) {
             const winningPlayerIndex = determineHighestCard(currentRoundCards);
             players[winningPlayerIndex].takes++;
+            io.emit('playerStats', players); // add new
             io.emit('roundEnded', players, winningPlayerIndex);
             choosingCardAllowed = false; // Disable choosing of cards
             setTimeout(() => {
@@ -184,15 +180,21 @@ io.on('connection', (socket) => {
         }
     });
 
+    // socket.on('disconnect', () => {
+    //     // Remove player on disconnect
+    //     const playerIndex = players.findIndex(p => p.name === currentPlayerName);
+    //     if (playerIndex !== -1) {
+    //         players.splice(playerIndex, 1);
+    //         io.emit('updatePlayers', players.map(p => p.name));
+    //         // Reset or adjust game state as necessary
+    //     }
+    // });
+
     socket.on('disconnect', () => {
-        // Remove player on disconnect
-        const playerIndex = players.findIndex(p => p.name === currentPlayerName);
-        if (playerIndex !== -1) {
-            players.splice(playerIndex, 1);
-            io.emit('updatePlayers', players.map(p => p.name));
-            // Reset or adjust game state as necessary
-        }
-    });
+        players = players.filter(player => player.socketId !== socket.id);
+        io.emit('updatePlayers',players);
+        // Additional game state adjustments can be added here
+    })
 
     // controls turns of players
     socket.on('turn', () => {

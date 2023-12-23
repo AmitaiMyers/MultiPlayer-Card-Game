@@ -2,7 +2,7 @@ export interface Player {
     name: string;
     index: number;
     socketId: string;
-    guess: number;
+    declare: number;
     takes: number;
     score: number;
 }
