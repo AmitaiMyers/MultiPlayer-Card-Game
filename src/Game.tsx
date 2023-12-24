@@ -345,6 +345,11 @@ const Game: React.FC = () => {
             return;
         }
 
+        if(isDeclarePhase) {
+            alert("Declare phase is ongoing.");
+            return;
+        }
+
         if (!canChooseCard) {
             alert("Wait for the cards to be cleared.");
             return;
