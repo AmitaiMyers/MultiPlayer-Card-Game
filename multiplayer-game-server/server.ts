@@ -111,6 +111,7 @@ io.on('connection', (socket) => {
                         sliceSuit = currentBetSuit; // Set by the highest bidder or default if no bets
                         players[playerIndex].declare = currentBetNumber;
                         io.emit('playerStats', players);
+                        startDeclarePhase(); // new
                     }
                     io.emit('sliceSuitUpdate', {
                         currentBetNumber,
@@ -193,6 +194,10 @@ io.on('connection', (socket) => {
             io.emit('playerStats', players); // add new
             io.emit('roundEnded', players, winningPlayerIndex);
             choosingCardAllowed = false; // Disable choosing of cards
+            if (allPlayersHandsEmpty()) {
+                endRound();
+                startGame();
+            }
             setTimeout(() => {
                 currentRoundCards = [];
                 choosingCardAllowed = true; // Re-enable choosing of cards after a delay
@@ -201,10 +206,7 @@ io.on('connection', (socket) => {
                 io.emit('clearChosenCards');
             }, 3000);
         }
-        if (allPlayersHandsEmpty()) {
-            endRound();
-            startGame();
-        }
+
     });
 
     // socket.on('disconnect', () => {
@@ -292,9 +294,11 @@ function startBiddingPhase() {
 
 function startDeclarePhase() {
     isDeclarePhase = true;
-    currentDeclareTurn = highestBidder !== null ? highestBidder : 0; // Start with the highest bidder or first player if no bids
+    currentDeclareTurn = highestBidder !== null ? highestBidder : 0;
+    currentTurn = highestBidder !== null ? highestBidder : 0; // Set the currentTurn to the highestBidder
     isBiddingPhase = false; // End bidding phase
     io.emit('startDeclarePhase', currentDeclareTurn);
+    io.emit('update-turn', currentTurn); // Notify clients about the new turn
 }
 
 function calculateScores(sumOfDeclares: number) {
@@ -316,12 +320,16 @@ function calculateScores(sumOfDeclares: number) {
                 player.score -= (Math.abs(player.declare - player.takes) * 10);
             }
         }
+        io.emit('playerStats', players);
+        io.emit('updatePlayers', players);
     });
 }
 
 // Call this function at the end of a round
 function endRound() {
     calculateScores(sumOfDeclares);
+    passedPlayer = passedPlayer.map(() => false);
+    declaredPlayers = declaredPlayers.map(() => false);
     // Emit an event to the client to update the scores
     io.emit('updateScores', players);
 
@@ -342,6 +350,8 @@ function startGame() {
         player.declare = 0;
         player.cardsHand = 13;
     });
+    // passedPlayer = passedPlayer.map(() => false);
+    // declaredPlayers = declaredPlayers.map(() => false);
     players.forEach((player, index) => {
         io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
     });
