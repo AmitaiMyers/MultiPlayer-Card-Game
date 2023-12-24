@@ -59,7 +59,8 @@ io.on('connection', (socket) => {
                 socketId: socket.id,
                 declare: 0,
                 takes: 0,
-                score: 0
+                score: 0,
+                cardsHand: 13
             });
         }
         // io.emit('updatePlayers', players.map(p => p.name));
@@ -149,7 +150,13 @@ io.on('connection', (socket) => {
                 socket.emit('declareError', 'Your declare cannot be less than the highest bid');
                 return;
             }
+            const numOfDeclaredPlayers = declaredPlayers.filter(value => value === true).length;
+            if ((declareNumber + sumOfDeclares === 13) && numOfDeclaredPlayers === 3) {
+                socket.emit('declareError', 'sum of declares can not be 13');
+                return;
+            }
             players[playerIndex].declare = declareNumber;
+            sumOfDeclares += declareNumber;
             declaredPlayers[playerIndex] = true;
 
             const allDeclared = declaredPlayers.every(declared => declared);
@@ -175,6 +182,7 @@ io.on('connection', (socket) => {
         if (playerIndex === -1 || currentRoundCards.length >= MAX_CARDS_SLOT) {
             return;
         }
+        players[playerIndex].cardsHand--;
         currentRoundCards.push({card: chosenCard, playerIndex});
         // currentTurn = (currentTurn + 1) % players.length;
         io.emit('cardChosen', playerName, chosenCard, currentRoundCards);
@@ -192,6 +200,10 @@ io.on('connection', (socket) => {
                 io.emit('update-turn', currentTurn); // Emit the updated turn
                 io.emit('clearChosenCards');
             }, 3000);
+        }
+        if (allPlayersHandsEmpty()) {
+            endRound();
+            startGame();
         }
     });
 
@@ -324,6 +336,12 @@ function startGame() {
     hands.forEach((handOfCards, index) => {
         hands[index] = deck.sortCardsBySuitAndValue(handOfCards);
     });
+    // Reset each player's takes, declare, and cardsHand
+    players.forEach(player => {
+        player.takes = 0;
+        player.declare = 0;
+        player.cardsHand = 13;
+    });
     players.forEach((player, index) => {
         io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
     });
@@ -335,12 +353,16 @@ function startGame() {
     currentBetNumber = 0;
     currentBetSuit = '♣';
     sliceSuit = null;
-    // Emit an event to notify players about the new round
-    io.emit('newRoundStarted');
-
     // Start the bidding phase
     startBiddingPhase();
+    // Emit an event to notify players about the new round
+    io.emit('newRoundStarted');
 }
+
+function allPlayersHandsEmpty() {
+    return players.every(player => player.cardsHand === 0);
+}
+
 
 const PORT = 3001;
 server.listen(PORT, () => {

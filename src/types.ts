@@ -5,4 +5,5 @@ export interface Player {
     declare: number;
     takes: number;
     score: number;
+    cardsHand: number;
 }
