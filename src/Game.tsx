@@ -319,6 +319,9 @@ const Game: React.FC = () => {
                 declare: 0,
                 takes: 0,
             })));
+            setCurrentBid(0);
+            setCurrentBetSuit('♣');
+            setDeclareNumber(0);
         });
 
         return () => {
