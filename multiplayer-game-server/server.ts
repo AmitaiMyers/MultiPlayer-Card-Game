@@ -20,7 +20,7 @@ const MAX_PLAYERS = 4;
 const MAX_CARDS_SLOT = 4;
 let currentRoundCards: any[] = [];
 let currentTurn = 0;
-let currentRound = 1;
+let currentRound = 0;
 let choosingCardAllowed = true; // To control card choosing
 type Suit = '♣' | '♦' | '♥' | '♠';
 const suitStrength: Record<Suit, number> = {'♣': 1, '♦': 2, '♥': 3, '♠': 4};
@@ -338,6 +338,7 @@ function endRound() {
 
 
 function startGame() {
+    currentRound++;
     const deck = new Deck();
     deck.shuffle();
     const hands = deck.deal();
@@ -366,7 +367,7 @@ function startGame() {
     // Start the bidding phase
     startBiddingPhase();
     // Emit an event to notify players about the new round
-    io.emit('newRoundStarted');
+    io.emit('newRoundStarted',currentRound);
 }
 
 function allPlayersHandsEmpty() {

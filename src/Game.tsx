@@ -45,7 +45,7 @@ const Game: React.FC = () => {
     // const [players, setPlayers] = useState<Player[]>([]);
 
     const [players, setPlayers] = useState<Player[]>([]);
-
+    const [currentRound, setCurrentRound] = useState(0);
     const [hasJoined, setHasJoined] = useState<boolean>(false);
     const [gameStarted, setGameStarted] = useState<boolean>(false);
     const [currentPlayer, setCurrentPlayer] = useState<string | null>(null);
@@ -173,8 +173,9 @@ const Game: React.FC = () => {
 
     // need to implement this for the new round
     useEffect(() => {
-        socket.on('newRoundStarted', () => {
+        socket.on('newRoundStarted', (roundNumber) => {
             console.log('New round started');
+            setCurrentRound(roundNumber);
             // Handle new round logic here, e.g., resetting state
             setChosenCards([]);
             // ... other state resets as needed ...
@@ -423,7 +424,9 @@ const Game: React.FC = () => {
                         Current slice suit: {currentSliceSuit}
                     </div>
                 )}
+                <h2>Current Round: {currentRound}</h2>
             </div>
+
             {gameStarted ? (
                 <div className="game-board">
                     {players.map((player, index) => (
