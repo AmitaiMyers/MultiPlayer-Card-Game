@@ -311,6 +311,21 @@ const Game: React.FC = () => {
         };
 
     }, [socket]);
+    // reset table after each round
+    useEffect(() => {
+        socket.on('resetTable', () => {
+            setPlayers(players.map(player => ({
+                ...player,
+                declare: 0,
+                takes: 0,
+            })));
+        });
+
+        return () => {
+            socket.off('resetTable');
+        };
+    }, [socket, players]);
+
 
 
     useEffect(() => {

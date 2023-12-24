@@ -351,8 +351,7 @@ function startGame() {
         player.declare = 0;
         player.cardsHand = 13;
     });
-    // passedPlayer = passedPlayer.map(() => false);
-    // declaredPlayers = declaredPlayers.map(() => false);
+    io.emit('resetTable');
     players.forEach((player, index) => {
         io.to(player.socketId).emit('gameStarted', player.name, hands[index]);
     });
