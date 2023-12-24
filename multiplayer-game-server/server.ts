@@ -289,7 +289,7 @@ function startBiddingPhase() {
     isBiddingPhase = true;
     currentPlayerTurnBet = 0; // Assuming the bidding starts from the first player
     // Reset other relevant variables if needed
-    io.emit('startBiddingPhase');
+    io.emit('startBiddingPhase',currentPlayerTurnBet);
 }
 
 function startDeclarePhase() {

@@ -150,6 +150,17 @@ const Game: React.FC = () => {
         });
     }, [socket]);
 
+    //add new useEffect for the slice suit phase
+    useEffect(() => {
+        socket.on('startBiddingPhase', (currentPlayerTurnBet) => {
+            setIsSliceSuitPhase(true);
+            setCurrentPlayerTurnToBid(currentPlayerTurnBet);
+        });
+        return () => {
+            socket.off('startBiddingPhase');
+        };
+    }, [socket]);
+
     useEffect(() => {
         socket.on('declareError', (errorMessage) => {
             alert(errorMessage); // or handle the error in a more sophisticated way
