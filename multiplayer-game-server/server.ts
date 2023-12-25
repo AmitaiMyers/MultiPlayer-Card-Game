@@ -118,7 +118,6 @@ io.on('connection', (socket) => {
                     }
                     io.emit('sliceSuitUpdate', {
                         currentBetNumber,
-                        currentBetSuit,
                         highestBidder,
                         currentPlayerTurnBet,
                         isBiddingPhase,
