@@ -16,12 +16,12 @@ const server = http.createServer(app);
 const io = new Server(server, {cors: {origin: "http://localhost:3000", methods: ["GET", "POST"], credentials: true}});
 
 let players: Player[] = [];
-const MAX_PLAYERS = 4;
-const MAX_CARDS_SLOT = 4;
+const MAX_PLAYERS: number = 4;
+const MAX_CARDS_SLOT: number = 4;
 let currentRoundCards: any[] = [];
-let currentTurn = 0;
-let currentRound = 0;
-let choosingCardAllowed = true; // To control card choosing
+let currentTurn: number = 0;
+let currentRound: number = 0;
+let choosingCardAllowed: boolean = true; // To control card choosing
 type Suit = '♣' | '♦' | '♥' | '♠';
 const suitStrength: Record<Suit, number> = {'♣': 1, '♦': 2, '♥': 3, '♠': 4};
 
@@ -33,6 +33,7 @@ interface Bid {
 
 // Slice suit phase
 let currentPlayerTurnBet: number = 0;
+let startingBidderIndex = 0;
 let isBiddingPhase: boolean = true;
 let passedPlayer: boolean[] = [false, false, false, false];
 let highestBidder: number | null = null;
@@ -287,7 +288,7 @@ function determineHighestCard(currentRoundCards: { card: any; playerIndex: numbe
 
 function startBiddingPhase() {
     isBiddingPhase = true;
-    currentPlayerTurnBet = 0; // Assuming the bidding starts from the first player
+    currentPlayerTurnBet = startingBidderIndex;
     // Reset other relevant variables if needed
     io.emit('startBiddingPhase', currentPlayerTurnBet);
 }
@@ -330,7 +331,10 @@ function endRound() {
     calculateScores(sumOfDeclares);
     passedPlayer = passedPlayer.map(() => false);
     declaredPlayers = declaredPlayers.map(() => false);
-    highestBidder = null;
+    if (highestBidder !== null) {
+        startingBidderIndex = (highestBidder + 1) % MAX_PLAYERS;
+    }
+    highestBidder = null; // Reset highestBidder for next round
     currentBetNumber = 0;
     currentBetSuit = '♣';
     sliceSuit = null;
