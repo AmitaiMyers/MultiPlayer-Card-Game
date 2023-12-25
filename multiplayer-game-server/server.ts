@@ -40,6 +40,7 @@ let highestBidder: number | null = null;
 let currentBetNumber: number = 0;
 let currentBetSuit: Suit = '♣';
 let sliceSuit: Suit | null = null;
+let leadingSuit: Suit | null = null;
 
 // Declare
 let currentDeclareTurn: number = 0;
@@ -61,7 +62,8 @@ io.on('connection', (socket) => {
                 declare: 0,
                 takes: 0,
                 score: 0,
-                cardsHand: 13
+                cardsHand: 13,
+                hand: []
             });
         }
         // io.emit('updatePlayers', players.map(p => p.name));
@@ -116,6 +118,7 @@ io.on('connection', (socket) => {
                     }
                     io.emit('sliceSuitUpdate', {
                         currentBetNumber,
+                        currentBetSuit,
                         highestBidder,
                         currentPlayerTurnBet,
                         isBiddingPhase,
@@ -184,13 +187,29 @@ io.on('connection', (socket) => {
         if (playerIndex === -1 || currentRoundCards.length >= MAX_CARDS_SLOT) {
             return;
         }
-        players[playerIndex].cardsHand--;
+        const player = players[playerIndex];
+        const hasLeadingSuitCard = player.hand.some(card => card.suit === leadingSuit);
+
+        if (currentRoundCards.length === 0) {
+            leadingSuit = chosenCard.suit;
+        } else if (hasLeadingSuitCard && chosenCard.suit !== leadingSuit) {
+            socket.emit('chooseCardError', 'You must play a card of the leading suit BROSHI.');
+            currentTurn--;
+            return;
+        }
+        // else {
+
+
+        // Remove the chosen card from the player's hand
+        player.hand = player.hand.filter(card => card.suit !== chosenCard.suit || card.value !== chosenCard.value);
+        player.cardsHand = player.hand.length;
+        // players[playerIndex].cardsHand--;
         currentRoundCards.push({card: chosenCard, playerIndex});
         // currentTurn = (currentTurn + 1) % players.length;
         io.emit('cardChosen', playerName, chosenCard, currentRoundCards);
-
+        // }
         if (currentRoundCards.length === MAX_CARDS_SLOT) {
-            const winningPlayerIndex = determineHighestCard(currentRoundCards);
+            const winningPlayerIndex = determineHighestCard(currentRoundCards, sliceSuit);
             players[winningPlayerIndex].takes++;
             io.emit('playerStats', players); // add new
             io.emit('roundEnded', players, winningPlayerIndex);
@@ -228,11 +247,6 @@ io.on('connection', (socket) => {
 
     // controls turns of players
     socket.on('turn', () => {
-        // The player with index 0 is starting.
-        // after the player put a card on the table the turn move to the next player.
-        // at the end of the round the player who won the round will start the next round.
-        // I created a currentTurn with present the index of the player who turn to play.
-        // complete the task give me the implementation here and also in the Game.tsx and explain the logic
         currentTurn = (currentTurn + 1) % players.length;
         io.emit('update-turn', currentTurn);
     })
@@ -256,9 +270,10 @@ io.on('connection', (socket) => {
 });
 
 
-function determineHighestCard(currentRoundCards: { card: any; playerIndex: number }[]): number {
+function determineHighestCard(currentRoundCards: { card: any; playerIndex: number }[], sliceSuit: Suit | null): number {
     let highestCardIndex = -1;
     let highestCardValue = 0;
+    let highestCardSuit: Suit | null = null;
     const faceToNumber: { [key: string]: number } = {
         'A': 14,
         'K': 13,
@@ -276,12 +291,22 @@ function determineHighestCard(currentRoundCards: { card: any; playerIndex: numbe
     };
 
     currentRoundCards.forEach(({card, playerIndex}) => {
+        const cardSuit: Suit = card.suit;
         const cardValue = faceToNumber[card.value] || parseInt(card.value, 10);
-        if (cardValue > highestCardValue) {
+
+        if (cardSuit === sliceSuit) { // The card is slice suit
+            if (highestCardSuit !== sliceSuit || cardValue > highestCardValue) {
+                highestCardSuit = sliceSuit;
+                highestCardValue = cardValue;
+                highestCardIndex = playerIndex;
+            }
+        } else if (highestCardSuit !== sliceSuit && cardValue > highestCardValue) {
+            highestCardSuit = cardSuit;
             highestCardValue = cardValue;
             highestCardIndex = playerIndex;
         }
     });
+
     currentTurn = highestCardIndex;
     return highestCardIndex;
 }
@@ -334,6 +359,10 @@ function endRound() {
     if (highestBidder !== null) {
         startingBidderIndex = (highestBidder + 1) % MAX_PLAYERS;
     }
+    players.forEach(player => {
+        player.hand = [];  // Reset the hand
+        player.cardsHand = 0;  // Reset the card count
+    });
     highestBidder = null; // Reset highestBidder for next round
     currentBetNumber = 0;
     currentBetSuit = '♣';
@@ -347,6 +376,10 @@ function startGame() {
     const deck = new Deck();
     deck.shuffle();
     const hands = deck.deal();
+    players.forEach((player, index) => {
+        player.hand = hands[index];  // Store the dealt hand in the player's hand property
+        player.cardsHand = hands[index].length;  // Update cardsHand if necessary
+    });
     hands.forEach((handOfCards, index) => {
         hands[index] = deck.sortCardsBySuitAndValue(handOfCards);
     });

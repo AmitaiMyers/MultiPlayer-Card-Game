@@ -1,3 +1,5 @@
+import {Card} from "./Card";
+
 export interface Player {
     name: string;
     index: number;
@@ -6,4 +8,5 @@ export interface Player {
     takes: number;
     score: number;
     cardsHand: number;
+    hand:Card[];
 }

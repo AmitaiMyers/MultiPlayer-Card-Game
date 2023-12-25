@@ -123,16 +123,24 @@ const Game: React.FC = () => {
         socket.on('updatePlayers', (updatedPlayers: Player[]) => {
             setPlayers(updatedPlayers);
         });
+
+        return () => {
+            socket.off('updatePlayers');
+        };
+
+    }, [currentPlayer]);
+
+    useEffect(() => {
         socket.on('gameStarted', (playerName: string, cards: Card[]) => {
             console.log('Game started for player:', playerName);
             setGameStarted(true);
             if (currentPlayer === playerName) {
-                setPlayerCards(cards);
+                setPlayerCards(cards); // Set the current player's cards
             }
         });
 
         return () => {
-            socket.off('updatePlayers');
+            socket.off('gameStarted');
         };
 
     }, [currentPlayer]);
@@ -189,7 +197,7 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('roundReset', () => {
             // Reset client-side state variables
-            setHighestBet({ amount: 0, player: null });
+            setHighestBet({amount: 0, player: null});
             setCurrentBid(0);
             setCurrentBetSuit('♣');
             setCurrentSliceSuit(null);
@@ -199,7 +207,6 @@ const Game: React.FC = () => {
             socket.off('roundReset');
         };
     }, [socket]);
-
 
 
     const handleBid = () => {
@@ -345,7 +352,6 @@ const Game: React.FC = () => {
     }, [socket, players]);
 
 
-
     useEffect(() => {
         const handlePlayerStats = (updatedStats: React.SetStateAction<Player[]>) => {
             setPlayerStats(updatedStats);
@@ -367,6 +373,17 @@ const Game: React.FC = () => {
             socket.off('update-turn');
         }
     }, [socket]);
+
+    useEffect(() => {
+        socket.on('chooseCardError', (errorMessage) => {
+            alert(errorMessage);
+        });
+
+        return () => {
+            socket.off('chooseCardError');
+        };
+    }, [socket]);
+
     const handleJoinGame = () => {
         if (!hasJoined) {
             const playerName = prompt('Enter your name:');
@@ -390,7 +407,7 @@ const Game: React.FC = () => {
             return;
         }
 
-        if(isDeclarePhase) {
+        if (isDeclarePhase) {
             alert("Declare phase is ongoing.");
             return;
         }
@@ -437,27 +454,27 @@ const Game: React.FC = () => {
             <h1>Whist Game</h1>
             <div className="stats-container">
                 {renderStatsTable()}
-                Current player turn: {players[currentTurnPlayer]?.name}
+                Player turn: {players[currentTurnPlayer]?.name}
                 <br/>
-                Current player: {currentPlayer}
+                Player: {currentPlayer}
                 <br/>
                 {isSliceSuitPhase && (
                     <div>
-                        Current player's turn to bid: Player {players[currentPlayerTurnToBid]?.name}
+                        Player's turn to bid: Player {players[currentPlayerTurnToBid]?.name}
                     </div>
                 )}
                 {isDeclarePhase && (
                     <div>
-                        Current player to declare: {players[currentDeclareTurn]?.name}
+                        Player to declare: {players[currentDeclareTurn]?.name}
                     </div>
                 )}
                 <br/>
                 {!isSliceSuitPhase && gameStarted && (
                     <div>
-                        Current slice suit: {currentSliceSuit}
+                        Slice suit: {currentSliceSuit}
                     </div>
                 )}
-                <h2>Current Round: {currentRound}</h2>
+                <h2>Round: {currentRound}</h2>
             </div>
 
             {gameStarted ? (
@@ -466,7 +483,7 @@ const Game: React.FC = () => {
                         <PlayerHand
                             key={index}
                             playerName={player.name}
-                            cards={playerCards}
+                            cards={player.name === currentPlayer ? playerCards : player.hand} // Pass the correct hand
                             currentPlayer={currentPlayer}
                             position={getPlayerPosition(player.name)}
                             onCardClick={handleCardClick}
@@ -484,7 +501,7 @@ const Game: React.FC = () => {
                     {isSliceSuitPhase && (
                         <div className="bidding-section">
                             <div>
-                                Current Highest Bet: {highestBet.amount} {currentBetSuit} by
+                                Highest Bet: {highestBet.amount} {currentBetSuit} by
                                 Player {highestBet.player !== null ? players[highestBet.player]?.name : 'N/A'}
                             </div>
                             <br/>
@@ -520,7 +537,7 @@ const Game: React.FC = () => {
             {gameStarted && isDeclarePhase && (
                 <div className="declare-section">
                     <div>
-                        Current player's turn to declare: Player {players[currentDeclareTurn]?.name}
+                        Player's turn to declare: Player {players[currentDeclareTurn]?.name}
                     </div>
                     <input type="number" value={declareNumber}
                            onChange={(e) => setDeclareNumber(Number(e.target.value))}
