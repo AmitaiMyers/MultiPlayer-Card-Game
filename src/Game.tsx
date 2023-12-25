@@ -60,7 +60,7 @@ const Game: React.FC = () => {
     const [highestBet, setHighestBet] = useState<{ amount: number, player: number | null }>({amount: 0, player: null});
     const [currentPlayerTurnToBid, setCurrentPlayerTurnToBid] = useState<number>(0);
     const [currentBetSuit, setCurrentBetSuit] = useState<string>('♣');
-    const [currentSliceSuit, setCurrentSliceSuit] = useState<string>('♣');
+    const [currentSliceSuit, setCurrentSliceSuit] = useState<string | null>('♣');
     // Declare phase
     const [isDeclarePhase, setIsDeclarePhase] = useState<boolean>(false);
     const [currentDeclareTurn, setCurrentDeclareTurn] = useState<number>(0);
@@ -185,6 +185,21 @@ const Game: React.FC = () => {
             socket.off('newRoundStarted');
         };
     }, [socket]);
+
+    useEffect(() => {
+        socket.on('roundReset', () => {
+            // Reset client-side state variables
+            setHighestBet({ amount: 0, player: null });
+            setCurrentBid(0);
+            setCurrentBetSuit('♣');
+            setCurrentSliceSuit(null);
+        });
+
+        return () => {
+            socket.off('roundReset');
+        };
+    }, [socket]);
+
 
 
     const handleBid = () => {

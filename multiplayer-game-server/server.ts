@@ -289,7 +289,7 @@ function startBiddingPhase() {
     isBiddingPhase = true;
     currentPlayerTurnBet = 0; // Assuming the bidding starts from the first player
     // Reset other relevant variables if needed
-    io.emit('startBiddingPhase',currentPlayerTurnBet);
+    io.emit('startBiddingPhase', currentPlayerTurnBet);
 }
 
 function startDeclarePhase() {
@@ -330,10 +330,11 @@ function endRound() {
     calculateScores(sumOfDeclares);
     passedPlayer = passedPlayer.map(() => false);
     declaredPlayers = declaredPlayers.map(() => false);
-    // Emit an event to the client to update the scores
-    io.emit('updateScores', players);
-
-    // Additional logic to reset the round, deal new cards, etc.
+    highestBidder = null;
+    currentBetNumber = 0;
+    currentBetSuit = '♣';
+    sliceSuit = null;
+    io.emit('roundReset');
 }
 
 
@@ -366,7 +367,7 @@ function startGame() {
     // Start the bidding phase
     startBiddingPhase();
     // Emit an event to notify players about the new round
-    io.emit('newRoundStarted',currentRound);
+    io.emit('newRoundStarted', currentRound);
 }
 
 function allPlayersHandsEmpty() {
