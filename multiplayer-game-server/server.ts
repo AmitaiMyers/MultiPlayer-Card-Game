@@ -158,22 +158,24 @@ io.on('connection', (socket) => {
             if ((declareNumber + sumOfDeclares === 13) && numOfDeclaredPlayers === 3) {
                 socket.emit('declareError', 'sum of declares can not be 13');
                 return;
-            }
-            players[playerIndex].declare = declareNumber;
-            sumOfDeclares += declareNumber;
-            declaredPlayers[playerIndex] = true;
-
-            const allDeclared = declaredPlayers.every(declared => declared);
-            if (allDeclared) {
-                isDeclarePhase = false;
-                declaredPlayers.fill(false); // Reset declaredPlayers
-                io.emit('declarePhaseEnded');
             } else {
-                currentDeclareTurn = (currentDeclareTurn + 1) % players.length;
-                io.emit('updateDeclareTurn', currentDeclareTurn);
-            }
+                players[playerIndex].declare = declareNumber;
+                sumOfDeclares += declareNumber;
+                declaredPlayers[playerIndex] = true;
 
-            io.emit('playerStats', players); // Update all clients with the latest stats
+
+                const allDeclared = declaredPlayers.every(declared => declared);
+                if (allDeclared) {
+                    isDeclarePhase = false;
+                    declaredPlayers.fill(false); // Reset declaredPlayers
+                    io.emit('declarePhaseEnded');
+                } else {
+                    currentDeclareTurn = (currentDeclareTurn + 1) % players.length;
+                    io.emit('updateDeclareTurn', currentDeclareTurn);
+                }
+
+                io.emit('playerStats', players); // Update all clients with the latest stats
+            }
         }
     });
 
@@ -208,7 +210,7 @@ io.on('connection', (socket) => {
         io.emit('cardChosen', playerName, chosenCard, currentRoundCards);
         // }
         if (currentRoundCards.length === MAX_CARDS_SLOT) {
-            const winningPlayerIndex = determineHighestCard(currentRoundCards, sliceSuit);
+            const winningPlayerIndex = determineHighestCard(currentRoundCards, sliceSuit, leadingSuit);
             players[winningPlayerIndex].takes++;
             io.emit('playerStats', players); // add new
             io.emit('roundEnded', players, winningPlayerIndex);
@@ -269,7 +271,10 @@ io.on('connection', (socket) => {
 });
 
 
-function determineHighestCard(currentRoundCards: { card: any; playerIndex: number }[], sliceSuit: Suit | null): number {
+function determineHighestCard(currentRoundCards: {
+    card: any;
+    playerIndex: number
+}[], sliceSuit: Suit | null, leadingSuit: Suit | null): number {
     let highestCardIndex = -1;
     let highestCardValue = 0;
     let highestCardSuit: Suit | null = null;
@@ -299,7 +304,7 @@ function determineHighestCard(currentRoundCards: { card: any; playerIndex: numbe
                 highestCardValue = cardValue;
                 highestCardIndex = playerIndex;
             }
-        } else if (highestCardSuit !== sliceSuit && cardValue > highestCardValue) {
+        } else if (highestCardSuit !== sliceSuit && cardValue > highestCardValue && cardSuit === leadingSuit) {
             highestCardSuit = cardSuit;
             highestCardValue = cardValue;
             highestCardIndex = playerIndex;
@@ -366,6 +371,7 @@ function endRound() {
     currentBetNumber = 0;
     currentBetSuit = '♣';
     sliceSuit = null;
+    sumOfDeclares = 0;
     io.emit('roundReset');
 }
 

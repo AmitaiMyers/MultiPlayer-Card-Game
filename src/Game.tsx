@@ -247,7 +247,6 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('declarePhaseEnded', () => {
             setIsDeclarePhase(false);
-            alert("Declare phase has ended."); // or handle it in a more suitable way for your UI
         });
 
         return () => {
