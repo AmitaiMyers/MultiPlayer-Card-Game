@@ -150,6 +150,7 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('sliceSuitUpdate', (data) => {
             setIsSliceSuitPhase(data.isBiddingPhase);
+            setCurrentBetSuit(data.currentBetSuit);
             setHighestBet({amount: data.currentBetNumber, player: data.highestBidder});
             setCurrentPlayerTurnToBid(data.currentPlayerTurnBet);
             setCurrentSliceSuit(data.sliceSuit);

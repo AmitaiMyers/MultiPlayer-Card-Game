@@ -138,6 +138,7 @@ io.on('connection', (socket) => {
                 // Update all clients with the new state
                 io.emit('sliceSuitUpdate', {
                     currentBetNumber,
+                    currentBetSuit,
                     highestBidder,
                     currentPlayerTurnBet,
                     isBiddingPhase,
