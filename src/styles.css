@@ -84,15 +84,15 @@
 
 .player.left {
     position: absolute;
-    top: 50%;
-    left: 20px;
+    top: 40%;
+    left: 120px;
     transform: translateY(-50%) rotate(-90deg);
 }
 
 .player.right {
     position: absolute;
-    top: 50%;
-    right: 20px;
+    top: 40%;
+    right: 90px;
     transform: translateY(-50%) rotate(90deg);
 }
 
@@ -103,7 +103,7 @@
 
 .center-cards {
     position: absolute;
-    top: 50%;
+    top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
@@ -149,7 +149,7 @@
 
 .bidding-section {
     position: absolute;
-    top: 50%;
+    top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
