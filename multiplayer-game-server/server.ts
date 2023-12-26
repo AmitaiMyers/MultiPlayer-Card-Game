@@ -112,7 +112,7 @@ io.on('connection', (socket) => {
                         // If the current player has already passed or a bet has been made
                         isBiddingPhase = false;
                         sliceSuit = currentBetSuit; // Set by the highest bidder or default if no bets
-                        players[playerIndex].declare = currentBetNumber;
+                        players[highestBidder].declare = currentBetNumber;
                         io.emit('playerStats', players);
                         startDeclarePhase(); // new
                     }
