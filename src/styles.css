@@ -158,3 +158,12 @@
     justify-content: center;
     /* Add additional styling as needed */
 }
+
+.top-right-container {
+    position: absolute;
+    top: 10px; /* Adjust as necessary */
+    right: -1200px; /* Adjust as necessary */
+    background-color: #F5F5DC; /* Optional: for better visibility */
+    padding: 40px; /* Optional: for spacing */
+    box-shadow: 0 0 70px rgba(0,0,0,0.1); /* Optional: for styling */
+}

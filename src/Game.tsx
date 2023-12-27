@@ -454,27 +454,30 @@ const Game: React.FC = () => {
             <h1>Whist Game</h1>
             <div className="stats-container">
                 {renderStatsTable()}
-                Player turn: {players[currentTurnPlayer]?.name}
-                <br/>
-                Player: {currentPlayer}
-                <br/>
-                {isSliceSuitPhase && (
-                    <div>
-                        Player's turn to bid: Player {players[currentPlayerTurnToBid]?.name}
-                    </div>
-                )}
-                {isDeclarePhase && (
-                    <div>
-                        Player to declare: {players[currentDeclareTurn]?.name}
-                    </div>
-                )}
-                <br/>
-                {!isSliceSuitPhase && gameStarted && (
-                    <div>
-                        Slice suit: {currentSliceSuit}
-                    </div>
-                )}
-                <h2>Round: {currentRound}</h2>
+                <div className="top-right-container">
+                    Player turn: {players[currentTurnPlayer]?.name}
+                    <br/>
+                    Player: {currentPlayer}
+                    <br/>
+                    {isSliceSuitPhase && (
+                        <div>
+                            Player's turn to bid: Player {players[currentPlayerTurnToBid]?.name}
+                        </div>
+                    )}
+                    {isDeclarePhase && (
+                        <div>
+                            Player to declare: {players[currentDeclareTurn]?.name}
+                        </div>
+                    )}
+                    <br/>
+                    {!isSliceSuitPhase && gameStarted && (
+                        <div>
+                            Slice suit: {currentSliceSuit}
+                        </div>
+                    )}
+                    <h2>Round: {currentRound}</h2>
+                </div>
+
             </div>
 
             {gameStarted ? (
