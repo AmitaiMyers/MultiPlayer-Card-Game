@@ -196,7 +196,9 @@ const Game: React.FC = () => {
     }, [socket]);
 
     useEffect(() => {
-        socket.on('roundReset', () => {
+        socket.on('roundReset', (updatedPlayers) => {
+            setPlayers(updatedPlayers);
+            setPlayerStats(updatedPlayers);
             // Reset client-side state variables
             setHighestBet({amount: 0, player: null});
             setCurrentBid(0);

@@ -373,7 +373,7 @@ function endRound() {
     currentBetSuit = '♣';
     sliceSuit = null;
     sumOfDeclares = 0;
-    io.emit('roundReset');
+    io.emit('roundReset',players);
 }
 
 
