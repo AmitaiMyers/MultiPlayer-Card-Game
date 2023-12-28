@@ -113,9 +113,9 @@ const Game: React.FC = () => {
 
         if (index === -1 || currentPlayerIndex === -1) return "unknown"; // or some default position
 
-        if (index === (currentPlayerIndex + 1) % players.length) return "right";
+        if (index === (currentPlayerIndex + 1) % players.length) return "left";
         if (index === (currentPlayerIndex + 2) % players.length) return "top";
-        return "left";
+        return "right";
     };
 
 
