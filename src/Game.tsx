@@ -103,7 +103,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('playerStats', handlePlayerStats);
         };
-    }, [socket]);
+    }, []);
 
     const getPlayerPosition = (playerName: string) => {
         if (playerName === currentPlayer) return "bottom";
@@ -157,7 +157,7 @@ const Game: React.FC = () => {
             setPlayerStats(data.players);  // Update player stats to reflect the changes
             // ... [other state updates] ...
         });
-    }, [socket]);
+    }, []);
 
     //add new useEffect for the slice suit phase
     useEffect(() => {
@@ -168,7 +168,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('startBiddingPhase');
         };
-    }, [socket]);
+    }, []);
 
     useEffect(() => {
         socket.on('declareError', (errorMessage) => {
@@ -178,7 +178,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('declareError');
         };
-    }, [socket]);
+    }, []);
 
     // need to implement this for the new round
     useEffect(() => {
@@ -193,7 +193,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('newRoundStarted');
         };
-    }, [socket]);
+    }, []);
 
     useEffect(() => {
         socket.on('roundReset', (updatedPlayers) => {
@@ -209,7 +209,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('roundReset');
         };
-    }, [socket]);
+    }, []);
 
 
     const handleBid = () => {
@@ -245,7 +245,7 @@ const Game: React.FC = () => {
             setIsDeclarePhase(true);
             setCurrentDeclareTurn(declareTurnIndex);
         });
-    }, [socket]);
+    }, []);
 
     useEffect(() => {
         socket.on('declarePhaseEnded', () => {
@@ -255,7 +255,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('declarePhaseEnded');
         };
-    }, [socket]);
+    }, []);
 
     useEffect(() => {
         socket.on('updateDeclareTurn', (newDeclareTurn) => {
@@ -265,7 +265,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('updateDeclareTurn');
         };
-    }, [socket]);
+    }, []);
 
 
     const handleDeclareSubmit = () => {
@@ -321,7 +321,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('roundEnded');
         };
-    }, [socket]);
+    }, []);
 
     useEffect(() => {
         socket.on('clearChosenCards', () => {
@@ -334,7 +334,7 @@ const Game: React.FC = () => {
             socket.off('clearChosenCards');
         };
 
-    }, [socket]);
+    }, []);
     // reset table after each round
     useEffect(() => {
         socket.on('resetTable', () => {
@@ -351,7 +351,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('resetTable');
         };
-    }, [socket, players]);
+    }, [players]);
 
 
     useEffect(() => {
@@ -364,7 +364,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('playerStats', handlePlayerStats);
         };
-    }, [socket]);
+    }, []);
 
 
     useEffect(() => {
@@ -374,7 +374,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('update-turn');
         }
-    }, [socket]);
+    }, []);
 
     useEffect(() => {
         socket.on('chooseCardError', (errorMessage) => {
@@ -384,7 +384,7 @@ const Game: React.FC = () => {
         return () => {
             socket.off('chooseCardError');
         };
-    }, [socket]);
+    }, []);
 
     const handleJoinGame = () => {
         if (!hasJoined) {
