@@ -473,6 +473,8 @@ const Game: React.FC = () => {
                     {!isSliceSuitPhase && gameStarted && (
                         <div>
                             Slice suit: {currentSliceSuit}
+                            <br/>
+                            leading suit: {chosenCards[0]?.suit}
                         </div>
                     )}
                     <h2>Round: {currentRound}</h2>
