@@ -52,7 +52,7 @@ const Game: React.FC = () => {
     const [playerCards, setPlayerCards] = useState<Card[]>([]);
     const [chosenCards, setChosenCards] = useState<Card[]>([]);
     const [currentTurnPlayer, setCurrentTurnPlayer] = useState<number>(0);
-    const [playerStats, setPlayerStats] = useState<Player[]>([]);
+    // const [playerStats, setPlayerStats] = useState<Player[]>([]);
     const [canChooseCard, setCanChooseCard] = useState<boolean>(true);
     // Slice suit
     const [isSliceSuitPhase, setIsSliceSuitPhase] = useState<boolean>(true);
@@ -154,7 +154,8 @@ const Game: React.FC = () => {
             setHighestBet({amount: data.currentBetNumber, player: data.highestBidder});
             setCurrentPlayerTurnToBid(data.currentPlayerTurnBet);
             setCurrentSliceSuit(data.sliceSuit);
-            setPlayerStats(data.players);  // Update player stats to reflect the changes
+            // setPlayerStats(data.players);  // Update player stats to reflect the changes
+            setPlayers(data.players);
             // ... [other state updates] ...
         });
     }, []);
@@ -198,7 +199,7 @@ const Game: React.FC = () => {
     useEffect(() => {
         socket.on('roundReset', (updatedPlayers) => {
             setPlayers(updatedPlayers);
-            setPlayerStats(updatedPlayers);
+            // setPlayerStats(updatedPlayers);
             // Reset client-side state variables
             setHighestBet({amount: 0, player: null});
             setCurrentBid(0);
@@ -313,8 +314,8 @@ const Game: React.FC = () => {
 
     useEffect(() => {
         socket.on('roundEnded', (updatedPlayers, winningPlayerIndex) => {
-            setPlayerStats(updatedPlayers); // Assuming playerStats is the state that holds the data for rendering the table
-
+            // setPlayerStats(updatedPlayers); // Assuming playerStats is the state that holds the data for rendering the table
+            setPlayers(updatedPlayers);
         });
 
         // Cleanup listener on component unmount
@@ -356,7 +357,8 @@ const Game: React.FC = () => {
 
     useEffect(() => {
         const handlePlayerStats = (updatedStats: React.SetStateAction<Player[]>) => {
-            setPlayerStats(updatedStats);
+            // setPlayerStats(updatedStats);
+            setPlayers(updatedStats);
         };
 
         socket.on('playerStats', handlePlayerStats);
