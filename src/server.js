@@ -7,7 +7,7 @@ const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
-const Card_1 = require("../src/Card");
+const Card_1 = require("./Card");
 //In summary, socket.emit is for sending messages to one client,
 // io.emit is for broadcasting to all clients,
 // and socket.on is for listening for messages/events.
