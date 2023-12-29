@@ -17,16 +17,15 @@
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
-
-
   "scripts": {
-    "build-backend": "tsc",
-    "start-backend": "node server.js",
-    "build-frontend": "react-scripts build",
-    "start-frontend": "serve -s build",
-    "start": "npm run start-backend && npm run build-frontend && npm run start-frontend"
-
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "predeploy": "npm install --omit=dev",
+    "deploy": "npm run build && npm run start"
   },
+
 
 
   "browserslist": {
