@@ -17,14 +17,17 @@
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
+
+
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "predeploy": "npm install --omit=dev",
-    "deploy": "npm run build && npm run start"
+    "build-backend": "cd ../multiplayer-game-server && npm install && npm run build",
+    "start-backend": "node ../multiplayer-game-server/server.js",
+    "build-frontend": "react-scripts build",
+    "start-frontend": "serve -s build",
+    "start": "npm run build-backend && npm run start-backend && npm run build-frontend && npm run start-frontend"
+
   },
+
 
   "browserslist": {
     "production": [
