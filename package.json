@@ -20,8 +20,8 @@
 
 
   "scripts": {
-    "build-backend": "cd ../multiplayer-game-server && npm install && npm run build",
-    "start-backend": "node ../multiplayer-game-server/server.js",
+    "build-backend": "cd ../multiplayer-game-server",
+    "start-backend": "node server.js",
     "build-frontend": "react-scripts build",
     "start-frontend": "serve -s build",
     "start": "npm run build-backend && npm run start-backend && npm run build-frontend && npm run start-frontend"
